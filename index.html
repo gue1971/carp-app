@@ -67,7 +67,7 @@
       </div>
 
       <!-- Filters / Sort -->
-      <div id="filter-container" class="grid grid-cols-7 gap-1 px-4 pb-4">
+      <div id="filter-container" class="space-y-1 px-4 pb-4">
         <!-- JSで生成 -->
       </div>
     </div>
@@ -108,6 +108,30 @@
       return String(draft).replace(/ドラフト/g, '').replace(/\s+/g, ' ').trim();
     }
 
+    function buildPlayerChips(player) {
+      const chips = [player.pos];
+      if (player.status === '育成') chips.push('育成');
+
+      const throwBat = String(player.throw_bat || '');
+      const match = throwBat.match(/(右投|左投)(右打|左打|両打)/);
+      if (match) {
+        chips.push(match[1], match[2]);
+      } else if (throwBat && throwBat !== '-') {
+        chips.push(throwBat);
+      }
+
+      return chips;
+    }
+
+    function parseThrowBat(throwBat) {
+      const normalized = String(throwBat || '');
+      const match = normalized.match(/(右投|左投)?(右打|左打|両打)?/);
+      return {
+        throwHand: match?.[1] || null,
+        batHand: match?.[2] || null
+      };
+    }
+
     function calculateAge(birth) {
       if (!birth || birth === '-') return null;
       const normalized = String(birth).replace(/年|月/g, '-').replace(/日/g, '');
@@ -128,6 +152,7 @@
       const batting = player.stats2025?.batting ?? {};
       const pitching = player.stats2025?.pitching ?? {};
       const displayStatus = player.registration || player.status;
+      const { throwHand, batHand } = parseThrowBat(player.throw_bat);
       const displayRole = !displayStatus || displayStatus === player.pos || displayStatus.includes(player.pos)
         ? displayStatus || player.pos
         : `${displayStatus} • ${player.pos}`;
@@ -145,6 +170,9 @@
         draftLabel: formatDraftLabel(player.draft),
         debut: player.debut || '-',
         age: calculateAge(player.birth),
+        chips: buildPlayerChips(player),
+        throwHand,
+        batHand,
         displayStatus,
         displayRole,
         avg: formatAverage(player.avg),
@@ -164,13 +192,16 @@
     // --- 2. 状態管理 ---
     let state = {
       searchQuery: '',
-      activeFilter: null,
+      activePositionFilter: null,
+      activeDevelopmentFilter: null,
+      activeHandedFilter: null,
       sortKey: 'no',
       sortDirection: 'desc',
       selectedPlayer: null
     };
 
-    const filters = ['投手', '捕手', '内野手', '外野手', '育成'];
+    const positionFilters = ['投手', '捕手', '内野手', '外野手'];
+    const handednessFilters = ['右投', '左投', '右打', '左打'];
     const sortOptions = [
       { key: 'no', label: '背番号' },
       { key: 'age', label: '年齢' }
@@ -186,11 +217,37 @@
 
     // --- 4. レンダリング関数 ---
     function renderFilters() {
-      const filterButtons = filters.map(filter => `
+      const positionButtons = positionFilters.map(filter => `
         <button
-          onclick="setFilter('${filter}')"
+          onclick="setPositionFilter('${filter}')"
           class="min-w-0 px-0 py-1.5 rounded-full text-[12px] font-medium tracking-tight transition-colors ${
-            state.activeFilter === filter
+            state.activePositionFilter === filter
+              ? 'bg-white text-[#C80815] shadow-sm'
+              : 'bg-black/20 text-white/90 hover:bg-black/30'
+          }"
+        >
+          ${filter}
+        </button>
+      `).join('');
+
+      const developmentButton = `
+        <button
+          onclick="toggleDevelopmentFilter()"
+          class="min-w-0 px-0 py-1.5 rounded-full text-[12px] font-medium tracking-tight transition-colors ${
+            state.activeDevelopmentFilter
+              ? 'bg-white text-[#C80815] shadow-sm'
+              : 'bg-black/20 text-white/90 hover:bg-black/30'
+          }"
+        >
+          育成
+        </button>
+      `;
+
+      const handednessButtons = handednessFilters.map(filter => `
+        <button
+          onclick="setHandednessFilter('${filter}')"
+          class="min-w-0 px-0 py-1.5 rounded-full text-[12px] font-medium tracking-tight transition-colors ${
+            state.activeHandedFilter === filter
               ? 'bg-white text-[#C80815] shadow-sm'
               : 'bg-black/20 text-white/90 hover:bg-black/30'
           }"
@@ -215,7 +272,14 @@
         `;
       }).join('');
 
-      filterContainer.innerHTML = `${filterButtons}${sortButtons}`;
+      filterContainer.innerHTML = `
+        <div class="grid grid-cols-5 gap-1">
+          ${positionButtons}${developmentButton}
+        </div>
+        <div class="grid grid-cols-6 gap-1">
+          ${handednessButtons}${sortButtons}
+        </div>
+      `;
     }
 
     function comparePlayers(a, b) {
@@ -245,14 +309,29 @@
                               p.no.includes(q) ||
                               p.school.toLowerCase().includes(q);
                               
-        let matchesFilter = true;
-        if (state.activeFilter === '育成') {
-          matchesFilter = p.status === '育成';
-        } else if (state.activeFilter) {
-          matchesFilter = p.pos === state.activeFilter && p.status !== '育成';
+        let matchesPositionFilter = true;
+        if (state.activePositionFilter) {
+          matchesPositionFilter = p.pos === state.activePositionFilter;
         }
 
-        return matchesSearch && matchesFilter;
+        const matchesDevelopmentFilter = state.activeDevelopmentFilter ? p.status === '育成' : p.status !== '育成';
+
+        let matchesHandednessFilter = true;
+        if (state.activeHandedFilter === '右投' || state.activeHandedFilter === '左投') {
+          if (!state.activePositionFilter) {
+            matchesHandednessFilter = p.pos === '投手' && p.throwHand === state.activeHandedFilter;
+          } else {
+            matchesHandednessFilter = p.throwHand === state.activeHandedFilter;
+          }
+        } else if (state.activeHandedFilter === '右打' || state.activeHandedFilter === '左打') {
+          if (!state.activePositionFilter) {
+            matchesHandednessFilter = p.pos !== '投手' && (p.batHand === state.activeHandedFilter || p.batHand === '両打');
+          } else {
+            matchesHandednessFilter = p.batHand === state.activeHandedFilter || p.batHand === '両打';
+          }
+        }
+
+        return matchesSearch && matchesPositionFilter && matchesDevelopmentFilter && matchesHandednessFilter;
       }).sort(comparePlayers);
 
       if (filtered.length === 0) {
@@ -270,15 +349,25 @@
           </div>
           <div class="flex justify-between items-start relative z-10">
             <div class="flex-1 min-w-0 pr-4">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-bold px-2 py-0.5 rounded-md ${p.status === '育成' ? 'bg-gray-200 text-gray-600' : 'bg-red-50 text-[#C80815]'}">
-                  ${p.pos}
-                </span>
-                ${p.status === '育成' ? `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-200 text-gray-600">育成</span>` : ''}
+              <div class="mb-2 flex flex-wrap gap-1.5">
+                ${p.chips.map(chip => `
+                  <span class="rounded-full px-2.5 py-1 text-[11px] font-bold leading-none ${
+                    chip === p.pos
+                      ? 'bg-red-50 text-[#C80815]'
+                      : chip === '育成'
+                        ? 'bg-gray-200 text-gray-600'
+                        : 'bg-[#0B162C]/6 text-[#0B162C]/72'
+                  }">
+                    ${chip}
+                  </span>
+                `).join('')}
               </div>
-              <h2 class="text-xl font-bold mt-1 text-gray-900 tracking-tight truncate">${p.name}</h2>
-              <p class="text-sm text-gray-500 mt-1 flex items-center gap-1 truncate">
-                ${p.throw_bat} • ${p.birthplace} • ${p.age !== null ? `${p.age}歳` : '-'}${p.draftLabel ? ` • ${p.draftLabel}` : ''}
+              <div class="mt-1 flex items-end gap-2 min-w-0">
+                <h2 class="truncate text-xl font-bold tracking-tight text-gray-900">${p.name}</h2>
+                ${p.nameKana ? `<span class="shrink-0 text-[11px] font-medium tracking-wide text-gray-400">${p.nameKana}</span>` : ''}
+              </div>
+              <p class="mt-1 text-sm text-gray-500 truncate">
+                ${[p.birthplace, p.age !== null ? `${p.age}歳` : null, p.draftLabel].filter(Boolean).join(' • ')}
               </p>
             </div>
             <div class="text-3xl font-black text-[#C80815] shrink-0">${p.no}</div>
@@ -353,17 +442,20 @@
           <i data-lucide="x" class="w-6 h-6"></i>
         </button>
 
-        <div class="relative h-64 w-full flex flex-col justify-end p-6 bg-[#0B162C]">
-          <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div class="relative h-64 w-full flex flex-col justify-end p-6 bg-[#C80815]">
+          <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#8F0E17]/55 via-[#B6121D]/18 to-transparent"></div>
           
           <div class="relative z-10 text-white flex justify-between items-end">
             <div>
               <div class="text-sm font-medium tracking-widest opacity-80 mb-1">${p.displayRole}</div>
-              <h1 class="text-4xl font-black tracking-tight leading-none mb-2">${p.name}</h1>
+              <div class="mb-2 flex items-end gap-3">
+                <h1 class="text-4xl font-black tracking-tight leading-none">${p.name}</h1>
+                ${p.nameKana ? `<div class="pb-1 text-sm font-medium tracking-[0.18em] opacity-80">${p.nameKana}</div>` : ''}
+              </div>
               <div class="text-sm opacity-90">${p.throw_bat}</div>
             </div>
-            <div class="text-7xl font-black italic opacity-90 leading-none text-[#C80815]">${p.no}</div>
+            <div class="text-7xl font-black italic opacity-90 leading-none text-white">${p.no}</div>
           </div>
         </div>
 
@@ -431,8 +523,20 @@
     }
 
     // --- 5. アクション関数 ---
-    window.setFilter = (filter) => {
-      state.activeFilter = state.activeFilter === filter ? null : filter;
+    window.setPositionFilter = (filter) => {
+      state.activePositionFilter = state.activePositionFilter === filter ? null : filter;
+      renderFilters();
+      renderPlayerList();
+    };
+
+    window.toggleDevelopmentFilter = () => {
+      state.activeDevelopmentFilter = state.activeDevelopmentFilter ? null : true;
+      renderFilters();
+      renderPlayerList();
+    };
+
+    window.setHandednessFilter = (filter) => {
+      state.activeHandedFilter = state.activeHandedFilter === filter ? null : filter;
       renderFilters();
       renderPlayerList();
     };

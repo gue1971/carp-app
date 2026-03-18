@@ -3345,7 +3345,7 @@ window.playersData = [
     "school": "仙台大",
     "height": 187,
     "weight": 93,
-    "throw_bat": "右投左打",
+    "throw_bat": "右投両打",
     "history": "北海道札幌国際情報高－仙台大",
     "debut": null,
     "draft": "2025年ドラフト1位",
