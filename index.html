@@ -43,7 +43,7 @@
   <!-- Main View -->
   <div id="main-view">
     <!-- Header & Search -->
-    <div class="sticky top-0 z-40 bg-[#C80815] shadow-sm pt-safe-top">
+    <div class="sticky top-0 z-40 bg-[#C80815] shadow-sm pt-safe-top pb-5">
       <div class="space-y-3 px-4 py-4">
         <div class="flex justify-center">
           <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
@@ -62,7 +62,7 @@
       </div>
 
       <!-- Filters / Sort -->
-      <div id="filter-container" class="mx-4 mb-5 rounded-[22px] bg-[#C80815] p-2.5">
+      <div id="filter-container" class="mx-4 rounded-[22px] bg-[#C80815] px-2.5 pt-2.5 pb-2">
         <!-- JSで生成 -->
       </div>
     </div>
@@ -271,7 +271,7 @@
         <div class="grid grid-cols-5 gap-1.5">
           ${positionButtons}${developmentButton}
         </div>
-        <div class="mt-1.5 grid grid-cols-6 gap-1.5">
+        <div class="mt-2.5 grid grid-cols-6 gap-1.5">
           ${handednessButtons}${sortButtons}
         </div>
       `;
@@ -439,20 +439,20 @@
           <button onclick="closeDetail()" aria-label="閉じる" class="h-11 w-11 rounded-full bg-white text-xl font-semibold leading-none text-[#C80815] shadow-[0_10px_24px_rgba(65,12,18,0.24)] transition active:scale-95">✕</button>
         </div>
 
-        <div class="sticky top-0 z-30 -mt-[60px] relative min-h-[216px] w-full flex flex-col justify-end bg-[#C80815] px-4 pb-6 pt-safe-top">
+        <div class="sticky top-0 z-30 -mt-[60px] relative min-h-[272px] w-full flex flex-col justify-end bg-[#C80815] px-5 pb-8 pt-safe-top">
           <div class="absolute top-0 right-0 h-64 w-64 rounded-full bg-[#E45A63]/20 blur-3xl -translate-y-1/2 translate-x-1/2"></div>
           <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#9D101A]/45 via-[#C61A27]/16 to-transparent"></div>
           
-          <div class="relative z-10 text-white flex justify-between items-end">
-            <div>
-              <div class="mb-1 flex items-center gap-3 text-sm font-medium opacity-80">
-                <div class="tracking-widest">${p.displayRole}</div>
-                <div>${p.throw_bat}</div>
+          <div class="relative z-10 flex items-end justify-between gap-5 text-white">
+            <div class="min-w-0 flex-1 max-w-[68%]">
+              <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-semibold opacity-85">
+                <div class="tracking-[0.22em]">${p.displayRole}</div>
+                <div class="tracking-[0.08em]">${p.throw_bat}</div>
               </div>
-              <h1 class="text-4xl font-black tracking-tight leading-none">${p.name}</h1>
-              ${p.nameKana ? `<div class="mt-1 text-sm font-medium tracking-[0.18em] opacity-80">${p.nameKana}</div>` : ''}
+              <h1 class="text-[3.25rem] font-black tracking-[-0.04em] leading-[0.94]">${p.name}</h1>
+              ${p.nameKana ? `<div class="mt-3 text-[13px] font-semibold tracking-[0.22em] opacity-80">${p.nameKana}</div>` : ''}
             </div>
-            <div class="text-7xl font-black italic opacity-90 leading-none text-white">${p.no}</div>
+            <div class="shrink-0 pr-1 text-[6rem] font-black italic leading-[0.82] tracking-[-0.06em] text-white/95">${p.no}</div>
           </div>
         </div>
 
