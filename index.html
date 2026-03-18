@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#C80815">
+  <title>CARP PLAYERS</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="./players-data.js"></script>
+
+  <!-- Tailwind Custom Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* iOSのセーフエリア対応とスクロールバー非表示 */
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    .pt-safe-top { padding-top: env(safe-area-inset-top); }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* モーダルのアニメーション */
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased pb-safe">
+
+  <!-- Main View -->
+  <div id="main-view">
+    <!-- Header & Search -->
+    <div class="sticky top-0 z-40 pt-safe-top shadow-sm bg-[#C80815]">
+      <div class="px-4 py-4">
+        <div class="mb-4 flex justify-center">
+          <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
+        </div>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            <i data-lucide="search" class="text-gray-400 w-[18px] h-[18px]"></i>
+          </div>
+          <input
+            id="search-input"
+            type="text"
+            placeholder="選手名、背番号、出身校で検索..."
+            class="w-full pl-10 pr-10 py-3 bg-white/10 text-white placeholder-white/60 rounded-xl outline-none focus:bg-white focus:text-gray-900 transition-all shadow-inner"
+          />
+          <button id="clear-search" class="absolute inset-y-0 right-3 flex items-center hidden">
+            <i data-lucide="x" class="text-gray-400 w-[18px] h-[18px]"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters / Sort -->
+      <div id="filter-container" class="grid grid-cols-7 gap-1 px-4 pb-4">
+        <!-- JSで生成 -->
+      </div>
+    </div>
+
+    <!-- Player List -->
+    <div id="player-list" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- JSで生成 -->
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="hidden fixed inset-0 z-50 bg-gray-50 overflow-y-auto slide-up">
+    <!-- JSで生成 -->
+  </div>
+
+  <script>
+    // --- 1. データ定義 (JSON) ---
+    function formatAverage(value) {
+      if (value === null || value === undefined || value === '-') return '-';
+      const numeric = Number(value);
+      if (Number.isNaN(numeric)) return String(value);
+      return numeric.toFixed(3).replace(/^0/, '');
+    }
+
+    function formatNumber(value, digits = 0) {
+      if (value === null || value === undefined || value === '') return '-';
+      const numeric = Number(value);
+      if (Number.isNaN(numeric)) return String(value);
+      return digits > 0 ? numeric.toFixed(digits) : String(numeric);
+    }
+
+    function hasAnyStat(stats = {}) {
+      return Object.values(stats).some(value => value !== null && value !== undefined && value !== '');
+    }
+
+    function formatDraftLabel(draft) {
+      if (!draft || draft === '-') return null;
+      return String(draft).replace(/ドラフト/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function calculateAge(birth) {
+      if (!birth || birth === '-') return null;
+      const normalized = String(birth).replace(/年|月/g, '-').replace(/日/g, '');
+      const date = new Date(normalized);
+      if (Number.isNaN(date.getTime())) return null;
+
+      const today = new Date();
+      let age = today.getFullYear() - date.getFullYear();
+      const hasHadBirthday =
+        today.getMonth() > date.getMonth() ||
+        (today.getMonth() === date.getMonth() && today.getDate() >= date.getDate());
+
+      if (!hasHadBirthday) age -= 1;
+      return age;
+    }
+
+    function normalizePlayer(player) {
+      const batting = player.stats2025?.batting ?? {};
+      const pitching = player.stats2025?.pitching ?? {};
+      const displayStatus = player.registration || player.status;
+      const displayRole = !displayStatus || displayStatus === player.pos || displayStatus.includes(player.pos)
+        ? displayStatus || player.pos
+        : `${displayStatus} • ${player.pos}`;
+
+      return {
+        ...player,
+        school: player.school || '-',
+        height: player.height ?? '-',
+        weight: player.weight ?? '-',
+        birth: player.birth || '-',
+        birthplace: player.birthplace || '-',
+        throw_bat: player.throw_bat || '-',
+        history: player.history || '-',
+        draft: player.draft || '-',
+        draftLabel: formatDraftLabel(player.draft),
+        debut: player.debut || '-',
+        age: calculateAge(player.birth),
+        displayStatus,
+        displayRole,
+        avg: formatAverage(player.avg),
+        era: formatNumber(player.era, 2),
+        stats2025: {
+          batting,
+          pitching,
+          fieldingSummary: player.stats2025?.fieldingSummary || null
+        },
+        hasBattingStats: hasAnyStat(batting),
+        hasPitchingStats: hasAnyStat(pitching)
+      };
+    }
+
+    const playersData = (window.playersData || []).map(normalizePlayer);
+
+    // --- 2. 状態管理 ---
+    let state = {
+      searchQuery: '',
+      activeFilter: null,
+      sortKey: 'no',
+      sortDirection: 'desc',
+      selectedPlayer: null
+    };
+
+    const filters = ['投手', '捕手', '内野手', '外野手', '育成'];
+    const sortOptions = [
+      { key: 'no', label: '背番号' },
+      { key: 'age', label: '年齢' }
+    ];
+
+    // --- 3. DOM要素 ---
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const filterContainer = document.getElementById('filter-container');
+    const playerListContainer = document.getElementById('player-list');
+    const mainView = document.getElementById('main-view');
+    const detailModal = document.getElementById('detail-modal');
+
+    // --- 4. レンダリング関数 ---
+    function renderFilters() {
+      const filterButtons = filters.map(filter => `
+        <button
+          onclick="setFilter('${filter}')"
+          class="min-w-0 px-0 py-1.5 rounded-full text-[12px] font-medium tracking-tight transition-colors ${
+            state.activeFilter === filter
+              ? 'bg-white text-[#C80815] shadow-sm'
+              : 'bg-black/20 text-white/90 hover:bg-black/30'
+          }"
+        >
+          ${filter}
+        </button>
+      `).join('');
+
+      const sortButtons = sortOptions.map(option => {
+        const arrow = state.sortKey === option.key ? (state.sortDirection === 'desc' ? '↓' : '↑') : '';
+        return `
+          <button
+            onclick="setSort('${option.key}')"
+            class="min-w-0 px-0 py-1.5 rounded-full text-[12px] font-medium tracking-tight transition-colors ${
+              state.sortKey === option.key
+                ? 'bg-white text-[#C80815] shadow-sm'
+                : 'bg-black/20 text-white/90 hover:bg-black/30'
+            }"
+          >
+            ${option.label}${arrow}
+          </button>
+        `;
+      }).join('');
+
+      filterContainer.innerHTML = `${filterButtons}${sortButtons}`;
+    }
+
+    function comparePlayers(a, b) {
+      let result = 0;
+
+      if (state.sortKey === 'age') {
+        const aValue = a.age ?? Number.POSITIVE_INFINITY;
+        const bValue = b.age ?? Number.POSITIVE_INFINITY;
+        if (aValue !== bValue) result = aValue - bValue;
+      } else {
+        result = Number(a.no) - Number(b.no);
+      }
+
+      if (result === 0) {
+        result = a.name.localeCompare(b.name, 'ja');
+      }
+
+      return state.sortDirection === 'asc' ? result : result * -1;
+    }
+
+    function renderPlayerList() {
+      const q = state.searchQuery.toLowerCase();
+      
+      const filtered = playersData.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(q) || 
+                              (p.nameKana || '').toLowerCase().includes(q) ||
+                              p.no.includes(q) ||
+                              p.school.toLowerCase().includes(q);
+                              
+        let matchesFilter = true;
+        if (state.activeFilter === '育成') {
+          matchesFilter = p.status === '育成';
+        } else if (state.activeFilter) {
+          matchesFilter = p.pos === state.activeFilter && p.status !== '育成';
+        }
+
+        return matchesSearch && matchesFilter;
+      }).sort(comparePlayers);
+
+      if (filtered.length === 0) {
+        playerListContainer.innerHTML = `<div class="col-span-full py-12 text-center text-gray-400">該当する選手が見つかりません</div>`;
+        return;
+      }
+
+      playerListContainer.innerHTML = filtered.map(p => `
+        <div 
+          onclick="openDetail('${p.no}')"
+          class="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
+        >
+          <div class="absolute -right-4 -bottom-6 text-9xl font-black italic opacity-[0.03] pointer-events-none text-[#0B162C]">
+            ${p.no}
+          </div>
+          <div class="flex justify-between items-start relative z-10">
+            <div class="flex-1 min-w-0 pr-4">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md ${p.status === '育成' ? 'bg-gray-200 text-gray-600' : 'bg-red-50 text-[#C80815]'}">
+                  ${p.pos}
+                </span>
+                ${p.status === '育成' ? `<span class="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-200 text-gray-600">育成</span>` : ''}
+              </div>
+              <h2 class="text-xl font-bold mt-1 text-gray-900 tracking-tight truncate">${p.name}</h2>
+              <p class="text-sm text-gray-500 mt-1 flex items-center gap-1 truncate">
+                ${p.throw_bat} • ${p.birthplace} • ${p.age !== null ? `${p.age}歳` : '-'}${p.draftLabel ? ` • ${p.draftLabel}` : ''}
+              </p>
+            </div>
+            <div class="text-3xl font-black text-[#C80815] shrink-0">${p.no}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDetailModal() {
+      const p = state.selectedPlayer;
+      if (!p) return;
+
+      const hasStats = p.era !== '-' || p.avg !== '-';
+      const batting = p.stats2025?.batting ?? {};
+      const pitching = p.stats2025?.pitching ?? {};
+      const statBlocks = [];
+
+      if (p.pos === '投手' && p.hasPitchingStats) {
+        statBlocks.push(
+          createStatsGrid('2025 PITCHING', [
+            ['登板', formatNumber(pitching.appearances)],
+            ['勝敗', `${formatNumber(pitching.wins)}-${formatNumber(pitching.losses)}`],
+            ['セーブ', formatNumber(pitching.saves)],
+            ['HLD/HP', `${formatNumber(pitching.holds)}/${formatNumber(pitching.holdPoints)}`],
+            ['投球回', formatNumber(pitching.inningsPitched, 1)],
+            ['奪三振', formatNumber(pitching.strikeouts)]
+          ])
+        );
+      }
+
+      if (p.pos !== '投手' && p.hasBattingStats) {
+        statBlocks.push(
+          createStatsGrid('2025 BATTING', [
+            ['試合', formatNumber(batting.games)],
+            ['打席', formatNumber(batting.plateAppearances)],
+            ['打数', formatNumber(batting.atBats)],
+            ['安打', formatNumber(batting.hits)],
+            ['本塁打', formatNumber(batting.homeRuns)],
+            ['打点', formatNumber(batting.runsBattedIn)],
+            ['出塁率', formatAverage(batting.onBasePercentage)],
+            ['長打率', formatAverage(batting.sluggingPercentage)]
+          ])
+        );
+      }
+
+      if (p.stats2025?.fieldingSummary) {
+        statBlocks.push(`
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 class="text-sm font-bold text-gray-400 mb-3 tracking-wider">2025 FIELDING</h3>
+            <div class="text-sm font-medium text-gray-900">${p.stats2025.fieldingSummary}</div>
+          </div>
+        `);
+      }
+
+      const statsHtml = hasStats ? `
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex justify-around">
+          <div class="text-center">
+            <div class="text-xs text-gray-500 font-bold mb-1">2025 ${p.pos === '投手' ? '防御率' : '打率'}</div>
+            <div class="text-2xl font-black text-gray-900">${p.pos === '投手' ? p.era : p.avg}</div>
+          </div>
+          <div class="w-px bg-gray-100"></div>
+          <div class="text-center">
+            <div class="text-xs text-gray-500 font-bold mb-1">試合</div>
+            <div class="text-2xl font-black text-gray-900">${formatNumber(p.pos === '投手' ? pitching.appearances : batting.games)}</div>
+          </div>
+        </div>
+      ` : '';
+
+      detailModal.innerHTML = `
+        <!-- スクロール追従の閉じるボタン（右上） -->
+        <button onclick="closeDetail()" class="fixed top-safe-top right-4 mt-4 p-2.5 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition z-[60] shadow-sm active:scale-95">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+
+        <div class="relative h-64 w-full flex flex-col justify-end p-6 bg-[#0B162C]">
+          <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/60 to-transparent"></div>
+          
+          <div class="relative z-10 text-white flex justify-between items-end">
+            <div>
+              <div class="text-sm font-medium tracking-widest opacity-80 mb-1">${p.displayRole}</div>
+              <h1 class="text-4xl font-black tracking-tight leading-none mb-2">${p.name}</h1>
+              <div class="text-sm opacity-90">${p.throw_bat}</div>
+            </div>
+            <div class="text-7xl font-black italic opacity-90 leading-none text-[#C80815]">${p.no}</div>
+          </div>
+        </div>
+
+        <div class="p-4 max-w-2xl mx-auto space-y-4 -mt-4 relative z-20">
+          ${statsHtml}
+
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">PROFILE</h3>
+            <div class="space-y-4">
+              ${createDetailRow('calendar', '生年月日', p.birth)}
+              ${createDetailRow('map-pin', '出身地', p.birthplace)}
+              <div class="flex gap-4">
+                <div class="flex-1">${createDetailRow('ruler', '身長', p.height + ' cm')}</div>
+                <div class="flex-1">${createDetailRow('weight', '体重', p.weight + ' kg')}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 pb-8">
+            <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">CAREER</h3>
+            <div class="space-y-4">
+              ${createDetailRow('graduation-cap', '出身校・経歴', p.history)}
+              ${createDetailRow('school', '出身校', p.school)}
+              ${createDetailRow('user', 'ドラフト', p.draft)}
+              ${createDetailRow('flag', '初出場', p.debut)}
+            </div>
+          </div>
+
+          ${statBlocks.join('')}
+        </div>
+      `;
+      
+      // 動的生成したDOMに対してLucideアイコンを再描画
+      lucide.createIcons();
+    }
+
+    function createDetailRow(iconName, label, value) {
+      return `
+        <div class="flex items-start gap-3">
+          <div class="mt-0.5 text-gray-400">
+            <i data-lucide="${iconName}" class="w-[18px] h-[18px]"></i>
+          </div>
+          <div>
+            <div class="text-xs text-gray-500">${label}</div>
+            <div class="text-sm font-medium text-gray-900 mt-0.5">${value}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function createStatsGrid(title, items) {
+      return `
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">${title}</h3>
+          <div class="grid grid-cols-2 gap-3">
+            ${items.map(([label, value]) => `
+              <div class="rounded-xl bg-gray-50 px-3 py-3">
+                <div class="text-xs text-gray-500">${label}</div>
+                <div class="mt-1 text-lg font-bold text-gray-900">${value}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // --- 5. アクション関数 ---
+    window.setFilter = (filter) => {
+      state.activeFilter = state.activeFilter === filter ? null : filter;
+      renderFilters();
+      renderPlayerList();
+    };
+
+    window.setSort = (sortKey) => {
+      if (state.sortKey === sortKey) {
+        state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sortKey = sortKey;
+        state.sortDirection = 'asc';
+      }
+      renderFilters();
+      renderPlayerList();
+    };
+
+    window.openDetail = (no) => {
+      const player = playersData.find(p => p.no === no);
+      if (player) {
+        state.selectedPlayer = player;
+        renderDetailModal();
+        detailModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // 背面スクロール防止
+      }
+    };
+
+    window.closeDetail = () => {
+      state.selectedPlayer = null;
+      detailModal.classList.add('hidden');
+      document.body.style.overflow = '';
+      detailModal.innerHTML = ''; // メモリ解放
+    };
+
+    // --- 6. イベントリスナー ---
+    searchInput.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      if (state.searchQuery) {
+        clearSearchBtn.classList.remove('hidden');
+        
+        // 検索時のアイコン色変更処理
+        searchInput.classList.remove('text-white', 'bg-white/10');
+        searchInput.classList.add('text-gray-900', 'bg-white');
+      } else {
+        clearSearchBtn.classList.add('hidden');
+        searchInput.classList.remove('text-gray-900', 'bg-white');
+        searchInput.classList.add('text-white', 'bg-white/10');
+      }
+      renderPlayerList();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      state.searchQuery = '';
+      searchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      searchInput.classList.remove('text-gray-900', 'bg-white');
+      searchInput.classList.add('text-white', 'bg-white/10');
+      renderPlayerList();
+    });
+
+    // --- 7. 初期化 ---
+    renderFilters();
+    renderPlayerList();
+    lucide.createIcons();
+
+  </script>
+</body>
+</html>
