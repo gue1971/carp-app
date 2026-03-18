@@ -62,7 +62,7 @@
       </div>
 
       <!-- Filters / Sort -->
-      <div id="filter-container" class="mx-4 mb-5 rounded-[22px] bg-white/16 p-2.5 shadow-[0_12px_30px_rgba(123,8,19,0.18)] backdrop-blur-[6px]">
+      <div id="filter-container" class="mx-4 mb-5 rounded-[22px] bg-[#C80815] p-2.5">
         <!-- JSで生成 -->
       </div>
     </div>
@@ -218,7 +218,7 @@
           class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activePositionFilter === filter
               ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-              : 'border-white/22 bg-[#D63441] text-white hover:bg-[#DC4450]'
+              : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
           }"
         >
           ${filter}
@@ -231,7 +231,7 @@
           class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activeDevelopmentFilter
               ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-              : 'border-white/22 bg-[#D63441] text-white hover:bg-[#DC4450]'
+              : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
           }"
         >
           育成
@@ -244,7 +244,7 @@
           class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activeHandedFilter === filter
               ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-              : 'border-white/22 bg-[#D63441] text-white hover:bg-[#DC4450]'
+              : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
           }"
         >
           ${filter}
@@ -259,7 +259,7 @@
             class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
               state.sortKey === option.key
                 ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-                : 'border-white/22 bg-[#D63441] text-white hover:bg-[#DC4450]'
+                : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
             }"
           >
             ${option.label}${arrow}
