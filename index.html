@@ -37,33 +37,49 @@
   <!-- Main View -->
   <div id="main-view">
     <!-- Header & Search -->
-    <div class="sticky top-0 z-40 bg-[#C80815] shadow-sm pt-safe-top pb-5">
-      <div class="space-y-3 px-4 py-4">
-        <div class="flex justify-center">
+    <div class="sticky top-0 z-40 shadow-sm">
+      <div class="relative overflow-hidden bg-[#C80815] pt-safe-top">
+        <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
+        <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
+        <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
+        <div class="relative flex items-center justify-center px-4 pb-5 pt-4">
           <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
-        </div>
-        <div class="relative">
-          <input
-            id="search-input"
-            type="text"
-            placeholder="選手名、背番号、出身校で検索..."
-            class="w-full rounded-2xl border border-white/70 bg-white/96 px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-white focus:bg-white shadow-[0_10px_24px_rgba(125,9,19,0.18)]"
-          />
-          <button id="clear-search" class="absolute inset-y-0 right-3 hidden text-xs font-semibold text-gray-400">
-            消去
-          </button>
         </div>
       </div>
 
-      <!-- Filters / Sort -->
-      <div id="filter-container" class="mx-4 rounded-[22px] bg-[#C80815] px-2.5 pt-2.5 pb-2">
-        <!-- JSで生成 -->
+      <div class="bg-[#0B162C] px-4 pb-4 pt-4">
+        <div id="filter-container" class="rounded-[22px] border border-white/8 bg-white/4 px-2.5 pt-2.5 pb-2">
+          <!-- JSで生成 -->
+        </div>
       </div>
     </div>
 
     <!-- Player List -->
     <div id="player-list" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- JSで生成 -->
+    </div>
+
+    <div id="search-dock" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65]">
+      <div id="search-shell" class="flex h-14 w-14 items-center justify-end overflow-hidden rounded-full border border-white/14 bg-[rgba(88,96,108,0.32)] shadow-[0_18px_38px_rgba(2,6,23,0.28)] backdrop-blur-md transition-all duration-200 ease-out">
+        <div class="pointer-events-none flex h-14 w-14 shrink-0 items-center justify-center text-white">
+          <svg viewBox="0 0 24 24" class="h-6 w-6 drop-shadow-[0_1px_2px_rgba(2,6,23,0.45)]" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5"></circle>
+            <path d="M16 16l4.5 4.5"></path>
+          </svg>
+        </div>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="選手名、背番号、出身校"
+          class="w-0 min-w-0 flex-1 bg-transparent px-0 pr-1 text-[15px] font-medium text-white placeholder:text-white/52 outline-none opacity-0 transition-all duration-150"
+        />
+        <button id="search-toggle" onclick="toggleSearch()" aria-label="検索" class="flex h-14 w-14 shrink-0 items-center justify-center text-white transition active:scale-95">
+          <svg id="search-toggle-icon" viewBox="0 0 24 24" class="h-6 w-6 drop-shadow-[0_1px_2px_rgba(2,6,23,0.45)]" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5"></circle>
+            <path d="M16 16l4.5 4.5"></path>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -181,6 +197,7 @@
     // --- 2. 状態管理 ---
     let state = {
       searchQuery: '',
+      searchOpen: false,
       activePositionFilter: null,
       activeDevelopmentFilter: null,
       activeHandedFilter: null,
@@ -198,11 +215,34 @@
 
     // --- 3. DOM要素 ---
     const searchInput = document.getElementById('search-input');
-    const clearSearchBtn = document.getElementById('clear-search');
+    const searchDock = document.getElementById('search-dock');
+    const searchShell = document.getElementById('search-shell');
+    const searchToggleIcon = document.getElementById('search-toggle-icon');
     const filterContainer = document.getElementById('filter-container');
     const playerListContainer = document.getElementById('player-list');
     const mainView = document.getElementById('main-view');
     const detailModal = document.getElementById('detail-modal');
+
+    function renderSearchDock() {
+      if (state.selectedPlayer) {
+        searchDock.classList.add('hidden');
+        return;
+      }
+
+      searchDock.classList.remove('hidden');
+      const isOpen = state.searchOpen;
+      searchShell.classList.toggle('w-14', !isOpen);
+      searchShell.classList.toggle('w-[min(calc(100vw-32px),360px)]', isOpen);
+      searchInput.classList.toggle('w-0', !isOpen);
+      searchInput.classList.toggle('opacity-0', !isOpen);
+      searchInput.classList.toggle('px-0', !isOpen);
+      searchInput.classList.toggle('w-full', isOpen);
+      searchInput.classList.toggle('opacity-100', isOpen);
+      searchInput.classList.toggle('pl-0', isOpen);
+      searchToggleIcon.innerHTML = isOpen
+        ? '<path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>'
+        : '<circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path>';
+    }
 
     // --- 4. レンダリング関数 ---
     function renderFilters() {
@@ -211,8 +251,8 @@
           onclick="setPositionFilter('${filter}')"
           class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activePositionFilter === filter
-              ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-              : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
+              ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
+              : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
           }"
         >
           ${filter}
@@ -224,8 +264,8 @@
           onclick="toggleDevelopmentFilter()"
           class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activeDevelopmentFilter
-              ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-              : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
+              ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
+              : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
           }"
         >
           育成
@@ -237,8 +277,8 @@
           onclick="setHandednessFilter('${filter}')"
           class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activeHandedFilter === filter
-              ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-              : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
+              ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
+              : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
           }"
         >
           ${filter}
@@ -252,8 +292,8 @@
             onclick="setSort('${option.key}')"
             class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
               state.sortKey === option.key
-                ? 'border-white bg-white text-[#C80815] shadow-[0_6px_18px_rgba(108,6,16,0.18)]'
-                : 'border-white/22 bg-white/22 text-white hover:bg-white/28'
+                ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
+                : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
             }"
           >
             ${option.label}${arrow}
@@ -428,26 +468,32 @@
       ` : '';
 
       detailModal.innerHTML = `
-        <div class="sticky top-0 z-30 relative min-h-[258px] w-full flex flex-col justify-end bg-[#C80815] px-5 pb-5 pt-safe-top">
-          <div class="absolute top-0 right-0 h-64 w-64 rounded-full bg-[#E45A63]/20 blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#9D101A]/45 via-[#C61A27]/16 to-transparent"></div>
-          <button onclick="closeDetail()" aria-label="閉じる" class="absolute right-4 top-[calc(env(safe-area-inset-top)+16px)] z-20 h-11 w-11 rounded-full bg-white text-xl font-semibold leading-none text-[#C80815] shadow-[0_10px_24px_rgba(65,12,18,0.24)] transition active:scale-95">✕</button>
-          <div class="absolute inset-x-0 top-[calc(env(safe-area-inset-top)+18px)] flex justify-center">
-            <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px] opacity-90">
-          </div>
-          
-          <div class="relative z-10 flex items-end justify-between gap-5 text-white">
-            <div class="min-w-0 flex-1 max-w-[68%]">
-              <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold opacity-85">
-                <div class="tracking-[0.22em]">${p.displayRole}</div>
-                <div class="tracking-[0.08em]">${p.throw_bat}</div>
-              </div>
-              <h1 class="text-[2.75rem] font-black tracking-[-0.04em] leading-[0.96]">${p.name}</h1>
-              ${p.nameKana ? `<div class="mt-2 text-[12px] font-semibold tracking-[0.2em] opacity-80">${p.nameKana}</div>` : ''}
+        <div class="sticky top-0 z-30 shadow-sm">
+          <div class="relative overflow-hidden bg-[#C80815] pt-safe-top">
+            <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
+            <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
+            <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
+            <div class="relative flex items-center justify-center px-5 pb-5 pt-4">
+              <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
             </div>
-            <div class="shrink-0 pr-1 text-[5.5rem] font-black italic leading-[0.82] tracking-[-0.06em] text-white/95">${p.no}</div>
+          </div>
+
+          <div class="bg-[#0B162C] px-5 pb-5 pt-4 text-white">
+            <div class="flex items-end justify-between gap-5">
+              <div class="min-w-0 flex-1 max-w-[70%]">
+                <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold text-white/80">
+                  <div class="tracking-[0.22em]">${p.displayRole}</div>
+                  <div class="tracking-[0.08em]">${p.throw_bat}</div>
+                </div>
+                <h1 class="text-[2.5rem] font-black tracking-[-0.04em] leading-[0.96] text-white">${p.name}</h1>
+                ${p.nameKana ? `<div class="mt-2 text-[12px] font-semibold tracking-[0.2em] text-white/76">${p.nameKana}</div>` : ''}
+              </div>
+              <div class="shrink-0 pr-1 text-[5rem] font-black italic leading-[0.82] tracking-[-0.06em] text-white">${p.no}</div>
+            </div>
           </div>
         </div>
+
+        <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full border border-white/14 bg-[rgba(88,96,108,0.32)] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
 
         <div class="relative z-20 mx-auto max-w-2xl pt-4">
           ${statsHtml}
@@ -536,12 +582,29 @@
       renderPlayerList();
     };
 
+    window.toggleSearch = () => {
+      if (state.searchOpen) {
+        state.searchOpen = false;
+        state.searchQuery = '';
+        searchInput.value = '';
+        renderSearchDock();
+        renderPlayerList();
+        searchInput.blur();
+        return;
+      }
+
+      state.searchOpen = true;
+      renderSearchDock();
+      setTimeout(() => searchInput.focus(), 0);
+    };
+
     window.openDetail = (no) => {
       const player = playersData.find(p => p.no === no);
       if (player) {
         state.selectedPlayer = player;
         renderDetailModal();
         detailModal.classList.remove('hidden');
+        renderSearchDock();
         document.body.style.overflow = 'hidden'; // 背面スクロール防止
       }
     };
@@ -551,35 +614,23 @@
       detailModal.classList.add('hidden');
       document.body.style.overflow = '';
       detailModal.innerHTML = ''; // メモリ解放
+      renderSearchDock();
     };
 
     // --- 6. イベントリスナー ---
     searchInput.addEventListener('input', (e) => {
       state.searchQuery = e.target.value;
-      if (state.searchQuery) {
-        clearSearchBtn.classList.remove('hidden');
-        
-        // 検索時のアイコン色変更処理
-        searchInput.classList.remove('text-white', 'bg-white/10');
-        searchInput.classList.add('text-gray-900', 'bg-white');
-      } else {
-        clearSearchBtn.classList.add('hidden');
-        searchInput.classList.remove('text-gray-900', 'bg-white');
-        searchInput.classList.add('text-white', 'bg-white/10');
-      }
       renderPlayerList();
     });
 
-    clearSearchBtn.addEventListener('click', () => {
-      state.searchQuery = '';
-      searchInput.value = '';
-      clearSearchBtn.classList.add('hidden');
-      searchInput.classList.remove('text-gray-900', 'bg-white');
-      searchInput.classList.add('text-white', 'bg-white/10');
-      renderPlayerList();
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.toggleSearch();
+      }
     });
 
     // --- 7. 初期化 ---
+    renderSearchDock();
     renderFilters();
     renderPlayerList();
 
