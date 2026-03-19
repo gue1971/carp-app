@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#C80815">
+  <meta name="theme-color" content="#0B162C">
   <title>CARP PLAYERS</title>
   
   <!-- Tailwind CSS CDN -->
@@ -32,7 +32,7 @@
     
   </style>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans antialiased pb-safe">
+<body class="bg-[#0B162C] text-gray-900 font-sans antialiased pb-safe">
 
   <!-- Main View -->
   <div id="main-view">
@@ -48,19 +48,19 @@
       </div>
 
       <div class="bg-[#0B162C] px-4 pb-4 pt-4">
-        <div id="filter-container" class="rounded-[22px] border border-white/8 bg-white/4 px-2.5 pt-2.5 pb-2">
+        <div id="filter-container" class="rounded-[22px] bg-white/4 px-2.5 pt-2.5 pb-2">
           <!-- JSで生成 -->
         </div>
       </div>
     </div>
 
     <!-- Player List -->
-    <div id="player-list" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div id="player-list" class="grid grid-cols-1 gap-4 p-4 pb-[calc(env(safe-area-inset-bottom)+112px)] md:grid-cols-2 lg:grid-cols-3">
       <!-- JSで生成 -->
     </div>
 
     <div id="search-dock" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65]">
-      <div id="search-shell" class="flex h-14 w-14 items-center justify-end overflow-hidden rounded-full border border-white/14 bg-[rgba(88,96,108,0.32)] shadow-[0_18px_38px_rgba(2,6,23,0.28)] backdrop-blur-md transition-all duration-200 ease-out">
+      <div id="search-shell" class="flex h-14 w-14 items-center justify-end overflow-hidden rounded-full bg-[#C80815] shadow-[0_18px_38px_rgba(2,6,23,0.28)] backdrop-blur-md transition-all duration-200 ease-out">
         <div class="pointer-events-none flex h-14 w-14 shrink-0 items-center justify-center text-white">
           <svg viewBox="0 0 24 24" class="h-6 w-6 drop-shadow-[0_1px_2px_rgba(2,6,23,0.45)]" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="6.5"></circle>
@@ -84,7 +84,7 @@
   </div>
 
   <!-- Detail Modal -->
-  <div id="detail-modal" class="hidden fixed inset-0 z-50 bg-gray-50 overflow-y-auto">
+  <div id="detail-modal" class="hidden fixed inset-0 z-50 bg-[#0B162C] overflow-y-auto">
     <!-- JSで生成 -->
   </div>
 
@@ -198,16 +198,16 @@
     let state = {
       searchQuery: '',
       searchOpen: false,
+      rosterFilter: '支配下',
       activePositionFilter: null,
-      activeDevelopmentFilter: null,
-      activeHandedFilter: null,
+      activeThrowFilter: null,
+      activeBatFilter: null,
       sortKey: 'no',
       sortDirection: 'desc',
       selectedPlayer: null
     };
 
-    const positionFilters = ['投手', '捕手', '内野手', '外野手'];
-    const handednessFilters = ['右投', '左投', '右打', '左打'];
+    const positionFilters = ['投手', '野手', '捕手', '内野手', '外野手'];
     const sortOptions = [
       { key: 'no', label: '背番号' },
       { key: 'age', label: '年齢' }
@@ -246,54 +246,63 @@
 
     // --- 4. レンダリング関数 ---
     function renderFilters() {
-      const positionButtons = positionFilters.map(filter => `
+      const rosterButton = `
         <button
-          onclick="setPositionFilter('${filter}')"
-          class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-            state.activePositionFilter === filter
-              ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
-              : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
-          }"
+          onclick="toggleRosterFilter()"
+          class="min-w-0 rounded-xl bg-transparent px-0 py-2 text-[11px] font-semibold tracking-tight text-white transition-colors hover:bg-white/6"
         >
-          ${filter}
-        </button>
-      `).join('');
-
-      const developmentButton = `
-        <button
-          onclick="toggleDevelopmentFilter()"
-          class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-            state.activeDevelopmentFilter
-              ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
-              : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
-          }"
-        >
-          育成
+          ${state.rosterFilter}
         </button>
       `;
 
-      const handednessButtons = handednessFilters.map(filter => `
+      const positionButtons = positionFilters.map(filter => `
         <button
-          onclick="setHandednessFilter('${filter}')"
-          class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-            state.activeHandedFilter === filter
-              ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
-              : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
+          onclick="setPositionFilter('${filter}')"
+          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
+            state.activePositionFilter === filter
+              ? 'bg-[#C80815] text-white shadow-[0_8px_18px_rgba(108,6,16,0.24)]'
+              : 'bg-white/6 text-white hover:bg-white/10'
           }"
         >
           ${filter}
         </button>
       `).join('');
+
+      const throwButton = `
+        <button
+          onclick="cycleThrowFilter()"
+          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
+            state.activeThrowFilter
+              ? 'bg-transparent text-white'
+              : 'bg-white/6 text-white hover:bg-white/10'
+          }"
+        >
+          ${state.activeThrowFilter || '右投・左投'}
+        </button>
+      `;
+
+      const batButton = `
+        <button
+          onclick="cycleBatFilter()"
+          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
+            state.activeBatFilter
+              ? 'bg-transparent text-white'
+              : 'bg-white/6 text-white hover:bg-white/10'
+          }"
+        >
+          ${state.activeBatFilter || '右打・左打'}
+        </button>
+      `;
 
       const sortButtons = sortOptions.map(option => {
         const arrow = state.sortKey === option.key ? (state.sortDirection === 'desc' ? '↓' : '↑') : '';
         return `
           <button
             onclick="setSort('${option.key}')"
-            class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
+            class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
               state.sortKey === option.key
-                ? 'border-white bg-white text-[#0B162C] shadow-[0_8px_18px_rgba(2,6,23,0.22)]'
-                : 'border-white/12 bg-white/6 text-white hover:bg-white/10'
+                ? 'bg-white/10 text-white'
+                : 'bg-white/6 text-white hover:bg-white/10'
             }"
           >
             ${option.label}${arrow}
@@ -303,10 +312,10 @@
 
       filterContainer.innerHTML = `
         <div class="grid grid-cols-5 gap-1.5">
-          ${positionButtons}${developmentButton}
+          ${positionButtons}
         </div>
-        <div class="mt-2.5 grid grid-cols-6 gap-1.5">
-          ${handednessButtons}${sortButtons}
+        <div class="mt-2.5 grid grid-cols-5 gap-1.5">
+          ${rosterButton}${throwButton}${batButton}${sortButtons}
         </div>
       `;
     }
@@ -340,27 +349,24 @@
                               
         let matchesPositionFilter = true;
         if (state.activePositionFilter) {
-          matchesPositionFilter = p.pos === state.activePositionFilter;
+          matchesPositionFilter = state.activePositionFilter === '野手'
+            ? p.pos !== '投手'
+            : p.pos === state.activePositionFilter;
         }
 
-        const matchesDevelopmentFilter = state.activeDevelopmentFilter ? p.status === '育成' : p.status !== '育成';
+        const matchesRosterFilter = state.rosterFilter === '育成' ? p.status === '育成' : p.status !== '育成';
 
-        let matchesHandednessFilter = true;
-        if (state.activeHandedFilter === '右投' || state.activeHandedFilter === '左投') {
-          if (!state.activePositionFilter) {
-            matchesHandednessFilter = p.pos === '投手' && p.throwHand === state.activeHandedFilter;
-          } else {
-            matchesHandednessFilter = p.throwHand === state.activeHandedFilter;
-          }
-        } else if (state.activeHandedFilter === '右打' || state.activeHandedFilter === '左打') {
-          if (!state.activePositionFilter) {
-            matchesHandednessFilter = p.pos !== '投手' && (p.batHand === state.activeHandedFilter || p.batHand === '両打');
-          } else {
-            matchesHandednessFilter = p.batHand === state.activeHandedFilter || p.batHand === '両打';
-          }
+        let matchesThrowFilter = true;
+        if (state.activeThrowFilter) {
+          matchesThrowFilter = p.throwHand === state.activeThrowFilter;
         }
 
-        return matchesSearch && matchesPositionFilter && matchesDevelopmentFilter && matchesHandednessFilter;
+        let matchesBatFilter = true;
+        if (state.activeBatFilter) {
+          matchesBatFilter = p.batHand === state.activeBatFilter || p.batHand === '両打';
+        }
+
+        return matchesSearch && matchesPositionFilter && matchesRosterFilter && matchesThrowFilter && matchesBatFilter;
       }).sort(comparePlayers);
 
       if (filtered.length === 0) {
@@ -452,14 +458,14 @@
       }
 
       const statsHtml = hasStats ? `
-        <div class="mx-4 rounded-[28px] border border-white/80 bg-white/96 px-5 py-4 shadow-[0_18px_42px_rgba(112,10,22,0.18)] backdrop-blur-sm">
-          <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <div class="text-center">
+        <div class="rounded-[28px] border border-gray-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <h3 class="mb-4 text-sm font-bold tracking-wider text-gray-400">2025 SUMMARY</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-2xl bg-gray-50 px-4 py-4 text-center">
               <div class="mb-1 text-[11px] font-bold tracking-[0.18em] text-[#C80815]/72">2025 ${p.pos === '投手' ? '防御率' : '打率'}</div>
               <div class="text-3xl font-black tracking-tight text-gray-900">${p.pos === '投手' ? p.era : p.avg}</div>
             </div>
-            <div class="h-12 w-px bg-gradient-to-b from-transparent via-[#C80815]/20 to-transparent"></div>
-            <div class="text-center">
+            <div class="rounded-2xl bg-gray-50 px-4 py-4 text-center">
               <div class="mb-1 text-[11px] font-bold tracking-[0.18em] text-[#C80815]/72">試合</div>
               <div class="text-3xl font-black tracking-tight text-gray-900">${formatNumber(p.pos === '投手' ? pitching.appearances : batting.games)}</div>
             </div>
@@ -493,36 +499,38 @@
           </div>
         </div>
 
-        <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full border border-white/14 bg-[rgba(88,96,108,0.32)] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
+        <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-[#C80815] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
 
-        <div class="relative z-20 mx-auto max-w-2xl pt-4">
-          ${statsHtml}
-        </div>
+        <div class="pt-2">
+          <div class="relative z-20 mx-auto max-w-2xl px-4">
+            ${statsHtml}
+          </div>
 
-        <div class="mx-auto max-w-2xl space-y-4 px-4 pb-8 pt-6">
-          <div class="rounded-[28px] border border-gray-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-            <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">PROFILE</h3>
-            <div class="space-y-4">
-              ${createDetailRow('生年月日', p.birth)}
-              ${createDetailRow('出身地', p.birthplace)}
-              <div class="flex gap-4">
-                <div class="flex-1">${createDetailRow('身長', p.height + ' cm')}</div>
-                <div class="flex-1">${createDetailRow('体重', p.weight + ' kg')}</div>
+          <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-6">
+            <div class="rounded-[28px] border border-gray-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+              <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">PROFILE</h3>
+              <div class="space-y-4">
+                ${createDetailRow('生年月日', p.birth)}
+                ${createDetailRow('出身地', p.birthplace)}
+                <div class="flex gap-4">
+                  <div class="flex-1">${createDetailRow('身長', p.height + ' cm')}</div>
+                  <div class="flex-1">${createDetailRow('体重', p.weight + ' kg')}</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="rounded-[28px] border border-gray-100 bg-white p-6 pb-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-            <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">CAREER</h3>
-            <div class="space-y-4">
-              ${createDetailRow('出身校・経歴', p.history)}
-              ${createDetailRow('出身校', p.school)}
-              ${createDetailRow('ドラフト', p.draft)}
-              ${createDetailRow('初出場', p.debut)}
+            <div class="rounded-[28px] border border-gray-100 bg-white p-6 pb-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+              <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">CAREER</h3>
+              <div class="space-y-4">
+                ${createDetailRow('出身校・経歴', p.history)}
+                ${createDetailRow('出身校', p.school)}
+                ${createDetailRow('ドラフト', p.draft)}
+                ${createDetailRow('初出場', p.debut)}
+              </div>
             </div>
-          </div>
 
-          ${statBlocks.join('')}
+            ${statBlocks.join('')}
+          </div>
         </div>
       `;
     }
@@ -559,14 +567,26 @@
       renderPlayerList();
     };
 
-    window.toggleDevelopmentFilter = () => {
-      state.activeDevelopmentFilter = state.activeDevelopmentFilter ? null : true;
+    window.toggleRosterFilter = () => {
+      state.rosterFilter = state.rosterFilter === '支配下' ? '育成' : '支配下';
       renderFilters();
       renderPlayerList();
     };
 
-    window.setHandednessFilter = (filter) => {
-      state.activeHandedFilter = state.activeHandedFilter === filter ? null : filter;
+    window.cycleThrowFilter = () => {
+      state.activeThrowFilter =
+        state.activeThrowFilter === null ? '右投' :
+        state.activeThrowFilter === '右投' ? '左投' :
+        null;
+      renderFilters();
+      renderPlayerList();
+    };
+
+    window.cycleBatFilter = () => {
+      state.activeBatFilter =
+        state.activeBatFilter === null ? '右打' :
+        state.activeBatFilter === '右打' ? '左打' :
+        null;
       renderFilters();
       renderPlayerList();
     };
