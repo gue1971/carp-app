@@ -1393,7 +1393,8 @@
 
     window.setPendingGameOrder = (battingOrder) => {
       if (!state.pendingGameEntry) return;
-      state.pendingGameEntry = { ...state.pendingGameEntry, battingOrder };
+      const normalizedOrder = battingOrder === 'P' ? 'P' : Number(battingOrder);
+      state.pendingGameEntry = { ...state.pendingGameEntry, battingOrder: normalizedOrder };
       renderGameModal();
     };
 
