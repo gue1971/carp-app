@@ -2361,7 +2361,7 @@ window.playersData = [
     "registration": "内野手(新入団)",
     "note": "新入団",
     "birth": "2003-06-21",
-    "birthplace": "大阪府",
+    "birthplace": "大阪",
     "school": "近畿大",
     "height": 163,
     "weight": 70,

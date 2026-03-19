@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0B162C">
+  <meta name="theme-color" content="#16325C">
   <title>CARP PLAYERS</title>
   
   <!-- Tailwind CSS CDN -->
@@ -32,7 +32,7 @@
     
   </style>
 </head>
-<body class="bg-[#0B162C] text-gray-900 font-sans antialiased pb-safe">
+<body class="bg-[#16325C] text-gray-900 font-sans antialiased pb-safe">
 
   <!-- Main View -->
   <div id="main-view">
@@ -43,11 +43,13 @@
         <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
         <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
         <div class="relative flex items-center justify-center px-4 pb-5 pt-4">
-          <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
+          <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
+            <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
+          </button>
         </div>
       </div>
 
-      <div class="bg-[#0B162C] px-4 pb-4 pt-4">
+      <div class="bg-[#16325C] px-4 pb-4 pt-4">
         <div id="filter-container" class="rounded-[22px] bg-white/4 px-2.5 pt-2.5 pb-2">
           <!-- JSで生成 -->
         </div>
@@ -84,7 +86,17 @@
   </div>
 
   <!-- Detail Modal -->
-  <div id="detail-modal" class="hidden fixed inset-0 z-50 bg-[#0B162C] overflow-y-auto">
+  <div id="detail-modal" class="hidden fixed inset-0 z-[95] bg-[#16325C] overflow-y-auto">
+    <!-- JSで生成 -->
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-[80] bg-[#16325C] overflow-y-auto">
+    <!-- JSで生成 -->
+  </div>
+
+  <!-- Game Modal -->
+  <div id="game-modal" class="hidden fixed inset-0 z-[85] bg-[#16325C] overflow-y-auto">
     <!-- JSで生成 -->
   </div>
 
@@ -153,6 +165,182 @@
       return age;
     }
 
+    const PLAYER_ASSIGNMENTS_KEY = 'carp-player-assignments-v1';
+    const PLAYER_GAME_STATUS_KEY = 'carp-player-game-status-v1';
+    const settingsPositionOrder = ['投手', '捕手', '内野手', '外野手'];
+    const defaultGamePositions = ['投', '捕', '一', '二', '三', '遊', '左', '中', '右'];
+    const gamePositionLabels = {
+      '投': 'ピッチャー',
+      '捕': 'キャッチャー',
+      '一': 'ファースト',
+      '二': 'セカンド',
+      '三': 'サード',
+      '遊': 'ショート',
+      '左': 'レフト',
+      '中': 'センター',
+      '右': 'ライト',
+      'DH': 'DH'
+    };
+
+    function createDefaultAssignments() {
+      return Object.fromEntries(playersData.map(player => {
+        const rosterStatus = player.status === '育成' ? '育成' : '支配下';
+        return [player.no, {
+          rosterStatus,
+          squad: '2軍',
+          bench: false
+        }];
+      }));
+    }
+
+    function loadPlayerAssignments() {
+      const defaults = createDefaultAssignments();
+      try {
+        const saved = JSON.parse(localStorage.getItem(PLAYER_ASSIGNMENTS_KEY) || '{}');
+        return Object.fromEntries(playersData.map(player => {
+          const fallback = defaults[player.no];
+          const current = saved?.[player.no] || {};
+          const rosterStatus = current.rosterStatus === '育成' ? '育成' : fallback.rosterStatus;
+          const squadOptions = rosterStatus === '支配下' ? ['1軍', '2軍', '3軍'] : ['2軍', '3軍'];
+          const squad = squadOptions.includes(current.squad) ? current.squad : fallback.squad;
+          const bench = rosterStatus === '支配下' && squad === '1軍' ? Boolean(current.bench) : false;
+          return [player.no, { rosterStatus, squad, bench }];
+        }));
+      } catch (error) {
+        return defaults;
+      }
+    }
+
+    function savePlayerAssignments() {
+      try {
+        localStorage.setItem(PLAYER_ASSIGNMENTS_KEY, JSON.stringify(state.playerAssignments));
+      } catch (error) {
+        // 保存できない環境でも画面動作は維持する
+      }
+    }
+
+    function loadGameStatuses() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(PLAYER_GAME_STATUS_KEY) || '{}');
+        return Object.fromEntries(Object.entries(raw).map(([playerNo, value]) => {
+          if (typeof value === 'string') {
+            return [playerNo, { status: value, battingOrder: null, fieldPosition: null }];
+          }
+          return [playerNo, {
+            status: ['出場', '控え', '退場'].includes(value?.status) ? value.status : '控え',
+            battingOrder: Number.isInteger(value?.battingOrder) ? value.battingOrder : null,
+            fieldPosition: value?.fieldPosition || null
+          }];
+        }));
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function saveGameStatuses() {
+      try {
+        localStorage.setItem(PLAYER_GAME_STATUS_KEY, JSON.stringify(state.gameStatuses));
+      } catch (error) {
+        // 保存できない環境でも画面動作は維持する
+      }
+    }
+
+    function getPlayerAssignment(playerNo) {
+      return state.playerAssignments[playerNo] || {
+        rosterStatus: '支配下',
+        squad: '2軍',
+        bench: false
+      };
+    }
+
+    function getRosterStatus(player) {
+      return getPlayerAssignment(player.no).rosterStatus;
+    }
+
+    function getGameEntry(playerNo) {
+      const entry = state.gameStatuses[playerNo];
+      return {
+        status: ['出場', '控え', '退場'].includes(entry?.status) ? entry.status : '控え',
+        battingOrder: Number.isInteger(entry?.battingOrder) ? entry.battingOrder : null,
+        fieldPosition: entry?.fieldPosition || null
+      };
+    }
+
+    function getGameStatus(playerNo) {
+      return getGameEntry(playerNo).status;
+    }
+
+    function getGamePositions() {
+      return [...defaultGamePositions, 'DH'];
+    }
+
+    function getDefaultFieldPosition(player) {
+      if (player.pos === '投手') return '投';
+      if (player.pos === '捕手') return '捕';
+      if (player.pos === '外野手') return '中';
+      return '遊';
+    }
+
+    function getRecommendedFieldPosition(player, gameMembers = playersData) {
+      const activeEntries = gameMembers
+        .filter(item => getGameStatus(item.no) === '出場')
+        .map(item => getGameEntry(item.no).fieldPosition)
+        .filter(Boolean);
+
+      if (player.pos === '投手') {
+        return hasDhLineup(gameMembers) ? '投' : '投';
+      }
+      if (player.pos === '捕手') {
+        return activeEntries.includes('捕') ? '捕' : '捕';
+      }
+      if (player.pos === '内野手') {
+        const candidates = ['遊', '二', '三', '一'];
+        return candidates.find(position => !activeEntries.includes(position)) || '遊';
+      }
+      if (player.pos === '外野手') {
+        const candidates = ['中', '左', '右'];
+        return candidates.find(position => !activeEntries.includes(position)) || '中';
+      }
+      return getDefaultFieldPosition(player);
+    }
+
+    function getActiveBattingOrderPlayers(gameMembers = playersData) {
+      return gameMembers
+        .filter(player => getGameStatus(player.no) === '出場' && getGameEntry(player.no).battingOrder !== null)
+        .sort((a, b) => (getGameEntry(a.no).battingOrder ?? 99) - (getGameEntry(b.no).battingOrder ?? 99));
+    }
+
+    function getFirstEmptyBattingOrder(gameMembers = playersData) {
+      const used = new Set(getActiveBattingOrderPlayers(gameMembers).map(player => getGameEntry(player.no).battingOrder));
+      for (let order = 1; order <= 9; order += 1) {
+        if (!used.has(order)) return order;
+      }
+      return 1;
+    }
+
+    function hasDhLineup(gameMembers = playersData) {
+      return getActiveBattingOrderPlayers(gameMembers).some(player => getGameEntry(player.no).fieldPosition === 'DH');
+    }
+
+    function getActivePitcher(gameMembers = playersData) {
+      return gameMembers.find(player => {
+        const entry = getGameEntry(player.no);
+        return entry.status === '出場' && entry.fieldPosition === '投' && entry.battingOrder === null;
+      }) || null;
+    }
+
+    function getDisplayChips(player) {
+      const chips = [player.pos];
+      if (getRosterStatus(player) === '育成') chips.push('育成');
+
+      const throwBat = String(player.throw_bat || '');
+      if (throwBat && throwBat !== '-') {
+        chips.push(throwBat);
+      }
+
+      return chips;
+    }
+
     function normalizePlayer(player) {
       const batting = player.stats2025?.batting ?? {};
       const pitching = player.stats2025?.pitching ?? {};
@@ -198,20 +386,24 @@
     let state = {
       searchQuery: '',
       searchOpen: false,
+      settingsOpen: false,
+      gameOpen: false,
+      gameViewIndex: 0,
+      pendingGameEntry: null,
+      pendingPositionChange: null,
+      pendingOutPlayerNo: null,
+      playerAssignments: loadPlayerAssignments(),
+      gameStatuses: loadGameStatuses(),
       rosterFilter: '支配下',
       activePositionFilter: null,
       activeThrowFilter: null,
       activeBatFilter: null,
-      sortKey: 'no',
-      sortDirection: 'desc',
+      sortMode: 'numberAsc',
       selectedPlayer: null
     };
 
     const positionFilters = ['投手', '野手', '捕手', '内野手', '外野手'];
-    const sortOptions = [
-      { key: 'no', label: '背番号' },
-      { key: 'age', label: '年齢' }
-    ];
+    const rosterFilterOrder = ['支配下', '1軍', '2軍', '3軍', '育成'];
 
     // --- 3. DOM要素 ---
     const searchInput = document.getElementById('search-input');
@@ -222,9 +414,15 @@
     const playerListContainer = document.getElementById('player-list');
     const mainView = document.getElementById('main-view');
     const detailModal = document.getElementById('detail-modal');
+    const settingsModal = document.getElementById('settings-modal');
+    const gameModal = document.getElementById('game-modal');
+
+    function updateBodyScroll() {
+      document.body.style.overflow = state.selectedPlayer || state.settingsOpen || state.gameOpen ? 'hidden' : '';
+    }
 
     function renderSearchDock() {
-      if (state.selectedPlayer) {
+      if (state.selectedPlayer || state.settingsOpen || state.gameOpen) {
         searchDock.classList.add('hidden');
         return;
       }
@@ -242,6 +440,424 @@
       searchToggleIcon.innerHTML = isOpen
         ? '<path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>'
         : '<circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path>';
+    }
+
+    function renderSettingsModal() {
+      if (!state.settingsOpen) {
+        settingsModal.classList.add('hidden');
+        settingsModal.innerHTML = '';
+        return;
+      }
+
+      const registeredCount = playersData.filter(player => getRosterStatus(player) === '支配下').length;
+      const activeCount = playersData.filter(player => {
+        const assignment = getPlayerAssignment(player.no);
+        return assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+      }).length;
+      const benchCount = playersData.filter(player => {
+        const assignment = getPlayerAssignment(player.no);
+        return assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+      }).length;
+      const groupedPlayers = settingsPositionOrder.map(position => ({
+        position,
+        players: playersData
+          .filter(player => player.pos === position)
+          .sort((a, b) => Number(a.no) - Number(b.no))
+      })).filter(group => group.players.length > 0);
+
+      const countTone = (count, limit) => count > limit ? 'text-[#C80815]' : 'text-white';
+
+      settingsModal.classList.remove('hidden');
+      settingsModal.innerHTML = `
+        <div class="sticky top-0 z-20 shadow-sm">
+          <div class="relative overflow-hidden bg-[#C80815] pt-safe-top">
+            <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
+            <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
+            <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
+              <div class="h-11 w-11"></div>
+              <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
+                <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
+              </button>
+              <div class="h-11 w-11"></div>
+            </div>
+          </div>
+          <div class="bg-[#16325C] px-4 pb-4 pt-4 text-white">
+            <div class="text-[12px] font-semibold tracking-[0.18em] text-white/72">選手登録設定</div>
+            <div class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+              <div class="rounded-2xl bg-white/6 px-4 py-3">
+                <div class="text-[11px] tracking-[0.14em] text-white/56">支配下登録選手</div>
+                <div class="mt-1 flex items-center justify-between gap-3">
+                  <div class="text-lg font-black ${countTone(registeredCount, 70)}">${registeredCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 70</span></div>
+                  <div class="text-[9px] font-semibold tracking-[0.02em] text-white/62">投手 ${playersData.filter(player => player.pos === '投手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length} / 捕手 ${playersData.filter(player => player.pos === '捕手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length} / 内野手 ${playersData.filter(player => player.pos === '内野手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length} / 外野手 ${playersData.filter(player => player.pos === '外野手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length}</div>
+                </div>
+              </div>
+              <div class="rounded-2xl bg-white/6 px-4 py-3">
+                <div class="text-[11px] tracking-[0.14em] text-white/56">出場選手登録</div>
+                <div class="mt-1 flex items-center justify-between gap-3">
+                  <div class="text-lg font-black ${countTone(activeCount, 31)}">${activeCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 31</span></div>
+                  <div class="text-[9px] font-semibold tracking-[0.02em] text-white/62">投手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '投手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+                  }).length} / 捕手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '捕手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+                  }).length} / 内野手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '内野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+                  }).length} / 外野手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '外野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+                  }).length}</div>
+                </div>
+              </div>
+              <div class="rounded-2xl bg-white/6 px-4 py-3">
+                <div class="text-[11px] tracking-[0.14em] text-white/56">ベンチ入り</div>
+                <div class="mt-1 flex items-center justify-between gap-3">
+                  <div class="text-lg font-black ${countTone(benchCount, 26)}">${benchCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 26</span></div>
+                  <div class="text-[9px] font-semibold tracking-[0.02em] text-white/62">投手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '投手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+                  }).length} / 捕手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '捕手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+                  }).length} / 内野手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '内野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+                  }).length} / 外野手 ${playersData.filter(player => {
+                    const assignment = getPlayerAssignment(player.no);
+                    return player.pos === '外野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+                  }).length}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mx-auto max-w-5xl space-y-5 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-5">
+          ${groupedPlayers.map(group => `
+            <section class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <h2 class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">${group.position}</h2>
+              <div class="space-y-3">
+                ${group.players.map(player => {
+                  const assignment = getPlayerAssignment(player.no);
+                  return `
+                    <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                      <div class="flex items-center gap-3">
+                        <div class="min-w-0 flex-1">
+                          <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
+                          <div class="mt-1 text-left text-xs font-semibold tracking-[0.06em] text-gray-400">${player.throw_bat}</div>
+                        </div>
+                        <div class="ml-auto flex shrink-0 items-center justify-end gap-2">
+                          <button type="button" onclick="cyclePlayerRosterStatus('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.rosterStatus === '支配下' ? 'bg-[#C80815] text-white' : 'bg-[#16325C] text-white'}">${assignment.rosterStatus}</button>
+                          <button type="button" onclick="cyclePlayerSquad('${player.no}')" class="w-14 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.squad === '1軍' ? 'bg-[#C80815] text-white' : 'bg-[#16325C] text-white'}">${assignment.squad}</button>
+                          ${assignment.rosterStatus === '支配下' && assignment.squad === '1軍' ? `
+                            <button type="button" onclick="togglePlayerBench('${player.no}')" class="w-20 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.bench ? 'bg-[#C80815] text-white' : 'bg-[#16325C] text-white'}">${assignment.bench ? 'ベンチ入' : 'ベンチ外'}</button>
+                          ` : '<div class="w-20"></div>'}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </section>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderGameModal() {
+      if (!state.gameOpen) {
+        gameModal.classList.add('hidden');
+        gameModal.innerHTML = '';
+        return;
+      }
+
+      const gameMembers = playersData
+        .filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+        })
+        .sort((a, b) => Number(a.no) - Number(b.no));
+
+      const activePlayers = getActiveBattingOrderPlayers(gameMembers);
+      const activePitcher = getActivePitcher(gameMembers);
+      const battingOrderSlots = Array.from({ length: 9 }, (_, index) => ({
+        order: index + 1,
+        player: activePlayers.find(player => getGameEntry(player.no).battingOrder === index + 1) || null
+      }));
+      const benchPitchers = gameMembers.filter(player => getGameStatus(player.no) === '控え' && player.pos === '投手');
+      const benchFieldersByPosition = ['捕手', '内野手', '外野手'].map(position => ({
+        position,
+        players: gameMembers.filter(player => getGameStatus(player.no) === '控え' && player.pos === position)
+      }));
+      const retiredPlayers = gameMembers.filter(player => getGameStatus(player.no) === '退場');
+      const gamePages = [
+        { key: 'active', title: '出場選手' },
+        { key: 'benchFielders', title: '控え野手' },
+        { key: 'retired', title: '退場選手' },
+        { key: 'benchPitchers', title: '控え投手' }
+      ];
+      const currentPage = gamePages[state.gameViewIndex % gamePages.length];
+
+      const statusTone = (status) =>
+        status === '出場' ? 'bg-[#C80815] text-white' :
+        status === '控え' ? 'bg-[#16325C] text-white' :
+        'bg-gray-300 text-gray-700';
+      const gameActionLabel = (status) =>
+        status === '控え' ? 'IN' :
+        status === '出場' ? 'OUT' :
+        'RETURN';
+      const positionOptions = getGamePositions();
+      const pendingPlayer = state.pendingGameEntry
+        ? playersData.find(player => player.no === state.pendingGameEntry.playerNo)
+        : null;
+      const pendingPositionPlayer = state.pendingPositionChange
+        ? playersData.find(player => player.no === state.pendingPositionChange.playerNo)
+        : null;
+      const navButtonClass = 'flex h-12 w-12 items-center justify-center rounded-full bg-[#C80815] text-xl font-bold leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] transition active:scale-95';
+      const renderGamePlayerCard = (player, mode) => {
+        if (mode === 'active-lineup') {
+          const entry = getGameEntry(player.no);
+          return `
+            <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
+              <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
+            </button>
+            <div class="w-12 text-center text-xs font-semibold text-gray-500">${player.batHand || '-'}</div>
+            <button type="button" onclick="event.stopPropagation(); openPositionPicker('${player.no}')" class="w-20 rounded-full bg-gray-100 px-2 py-1.5 text-center text-[10px] font-semibold text-gray-700">${gamePositionLabels[entry.fieldPosition] || '-'}</button>
+            <button type="button" onclick="event.stopPropagation(); openOutConfirm('${player.no}')" class="w-12 rounded-full bg-gray-200 px-0 py-1 text-center text-[10px] font-semibold text-gray-600">OUT</button>
+          `;
+        }
+
+        if (mode === 'active-pitcher') {
+          return `
+            <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
+              <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
+            </button>
+            <div class="w-12 text-center text-xs font-semibold text-gray-500">${player.throwHand || '-'}</div>
+            <div class="w-20"></div>
+            <button type="button" onclick="event.stopPropagation(); openOutConfirm('${player.no}')" class="w-12 rounded-full bg-gray-200 px-0 py-1 text-center text-[10px] font-semibold text-gray-600">OUT</button>
+          `;
+        }
+
+        if (mode === 'bench-pitcher') {
+          return `
+            <div class="min-w-0 flex-1">
+              <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
+            </div>
+            <div class="w-16 text-center text-xs font-semibold text-gray-500">${player.throwHand || '-'}</div>
+            <button type="button" onclick="openGameEntryModal('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${statusTone(getGameStatus(player.no))}">${gameActionLabel(getGameStatus(player.no))}</button>
+          `;
+        }
+
+        if (mode === 'bench-fielder') {
+          return `
+            <div class="min-w-0 flex-1">
+              <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
+            </div>
+            <div class="w-16 text-center text-xs font-semibold text-gray-500">${player.batHand || '-'}</div>
+            <button type="button" onclick="openGameEntryModal('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${statusTone(getGameStatus(player.no))}">${gameActionLabel(getGameStatus(player.no))}</button>
+          `;
+        }
+
+        return `
+          <div class="min-w-0 flex-1">
+            <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
+            <div class="mt-1 text-left text-xs font-semibold tracking-[0.06em] text-gray-400">${player.throw_bat}</div>
+          </div>
+          <div class="w-16"></div>
+          <button type="button" onclick="returnPlayerToBench('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold bg-gray-300 text-gray-700">RETURN</button>
+        `;
+      };
+
+      gameModal.classList.remove('hidden');
+      gameModal.innerHTML = `
+        <div class="sticky top-0 z-20 shadow-sm">
+          <div class="relative overflow-hidden bg-[#C80815] pt-safe-top">
+            <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
+            <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
+            <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
+              <div class="h-11 w-11"></div>
+              <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
+                <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
+              </button>
+              <div class="h-11 w-11"></div>
+            </div>
+          </div>
+          <div class="bg-[#16325C] px-4 pb-4 pt-4 text-white">
+            <div class="text-[12px] font-semibold tracking-[0.18em] text-white/72">GAME MEMBERS</div>
+            <div class="mt-2 text-sm font-black text-white">${currentPage.title}</div>
+          </div>
+        </div>
+
+        <div id="game-swipe-area" ontouchstart="startGameSwipe(event)" ontouchend="endGameSwipe(event)" class="mx-auto max-w-5xl px-4 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-5">
+          ${currentPage.key === 'active' ? `
+            <section class="space-y-4">
+              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+                <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">BATTING ORDER</div>
+                <div class="space-y-3">
+                        ${battingOrderSlots.map(slot => `
+                          <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                            <div class="flex items-center gap-3">
+                        <div class="w-7 shrink-0 text-sm font-black text-gray-400">${slot.order}</div>
+                              ${slot.player ? renderGamePlayerCard(slot.player, 'active-lineup') : `
+                                <div class="min-w-0 flex-1 text-sm font-semibold text-gray-300">未設定</div>
+                                <div class="w-12"></div>
+                                <div class="w-24"></div>
+                                <div class="w-14"></div>
+                              `}
+                            </div>
+                          </div>
+                  `).join('')}
+                </div>
+              </div>
+              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+                <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">PITCHER</div>
+                    <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-7 shrink-0 text-sm font-black text-gray-400">投</div>
+                        ${activePitcher ? renderGamePlayerCard(activePitcher, 'active-pitcher') : `
+                          <div class="min-w-0 flex-1 text-sm font-semibold text-gray-300">未設定</div>
+                          <div class="w-12"></div>
+                          <div class="w-24"></div>
+                          <div class="w-14"></div>
+                        `}
+                      </div>
+                    </div>
+              </div>
+            </section>
+          ` : currentPage.key === 'benchFielders' ? `
+            <section class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">控え野手</div>
+              <div class="space-y-4">
+                ${benchFieldersByPosition.map(group => `
+                  <div>
+                    <div class="mb-2 flex items-center justify-between gap-3 px-1">
+                      <h3 class="text-xs font-black tracking-[0.14em] text-gray-400">${group.position}</h3>
+                      <div class="text-xs font-black text-gray-400">${group.players.length}</div>
+                    </div>
+                    <div class="space-y-3">
+                      ${group.players.length ? group.players.map(player => `
+                        <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                          <div class="flex items-center gap-3">
+                            ${renderGamePlayerCard(player, 'bench-fielder')}
+                          </div>
+                        </div>
+                      `).join('') : '<div class="rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-300">該当選手なし</div>'}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : currentPage.key === 'retired' ? `
+            <section class="space-y-4">
+              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">退場選手</h2>
+                  <div class="text-sm font-black text-gray-400">${retiredPlayers.length}</div>
+                </div>
+                <div class="space-y-3">
+                  ${retiredPlayers.length ? retiredPlayers.map(player => `
+                    <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                      <div class="flex items-center gap-3">
+                        ${renderGamePlayerCard(player, 'retired')}
+                      </div>
+                    </div>
+                  `).join('') : '<div class="rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
+                </div>
+              </div>
+              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="text-sm font-black tracking-[0.16em] text-gray-400">GAME SETTINGS</div>
+                  <button type="button" onclick="resetGameState()" class="rounded-full bg-gray-200 px-4 py-2 text-xs font-semibold text-gray-700">リセット</button>
+                </div>
+              </div>
+            </section>
+          ` : `
+            <section class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <div class="mb-4 flex items-center justify-between gap-3">
+                <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">控え投手</h2>
+                <div class="text-sm font-black text-gray-400">${benchPitchers.length}</div>
+              </div>
+              <div class="space-y-3">
+                ${benchPitchers.length ? benchPitchers.map(player => `
+                  <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      ${renderGamePlayerCard(player, 'bench-pitcher')}
+                    </div>
+                  </div>
+                `).join('') : '<div class="rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
+              </div>
+            </section>
+          `}
+        </div>
+
+        <div class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] inset-x-0 z-[88] flex items-center justify-between px-4">
+          <button type="button" onclick="shiftGameView(-1)" aria-label="前へ" class="${navButtonClass}">‹</button>
+          <div></div>
+          <button type="button" onclick="shiftGameView(1)" aria-label="次へ" class="${navButtonClass}">›</button>
+        </div>
+
+        ${pendingPlayer ? `
+          <div class="fixed inset-0 z-[90] bg-[#0B162C]/52 backdrop-blur-sm" onclick="closeGameEntryModal()">
+            <div class="flex min-h-full items-end justify-center px-4 pb-[max(24px,env(safe-area-inset-bottom)+16px)] sm:items-center sm:pb-0">
+              <div class="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(2,6,23,0.28)]" onclick="event.stopPropagation()">
+                <div class="text-[12px] font-semibold tracking-[0.16em] text-gray-400">出場登録</div>
+                <div class="mt-2 text-lg font-black tracking-tight text-gray-900">${pendingPlayer.no} ${pendingPlayer.name}</div>
+                <div class="mt-1 text-sm font-semibold text-gray-400">${pendingPlayer.throw_bat}</div>
+                <div class="mt-5">
+                  <div class="mb-2 text-[11px] font-bold tracking-[0.14em] text-gray-400">打順</div>
+                  <div class="grid grid-cols-3 gap-2">
+                    ${(pendingPlayer.pos === '投手' && hasDhLineup(gameMembers) ? ['P', ...Array.from({ length: 9 }, (_, index) => index + 1)] : Array.from({ length: 9 }, (_, index) => index + 1)).map(order => `
+                      <button type="button" onclick="setPendingGameOrder('${order}')" class="rounded-2xl px-0 py-2 text-sm font-semibold ${state.pendingGameEntry.battingOrder === order ? 'bg-[#C80815] text-white' : 'bg-gray-100 text-gray-600'}">${order === 'P' ? '打順なし' : `${order}番`}</button>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="mt-5">
+                  <div class="mb-2 text-[11px] font-bold tracking-[0.14em] text-gray-400">守備位置</div>
+                  <div class="grid grid-cols-4 gap-2">
+                    ${positionOptions.map(position => `<button type="button" onclick="setPendingGamePosition('${position}')" class="rounded-2xl px-0 py-2 text-[12px] font-semibold ${state.pendingGameEntry.fieldPosition === position ? 'bg-[#16325C] text-white' : 'bg-gray-100 text-gray-600'}">${gamePositionLabels[position]}</button>`).join('')}
+                  </div>
+                </div>
+                <div class="mt-5 flex items-center justify-end gap-2">
+                  <button type="button" onclick="closeGameEntryModal()" class="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">キャンセル</button>
+                  <button type="button" onclick="confirmGameEntry()" class="rounded-full bg-[#C80815] px-4 py-2 text-sm font-semibold text-white">決定</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${pendingPositionPlayer ? `
+          <div class="fixed inset-0 z-[91] bg-[#0B162C]/52 backdrop-blur-sm" onclick="closePositionPicker()">
+            <div class="flex min-h-full items-end justify-center px-4 pb-[max(24px,env(safe-area-inset-bottom)+16px)] sm:items-center sm:pb-0">
+              <div class="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(2,6,23,0.28)]" onclick="event.stopPropagation()">
+                <div class="text-[12px] font-semibold tracking-[0.16em] text-gray-400">守備位置変更</div>
+                <div class="mt-2 text-lg font-black tracking-tight text-gray-900">${pendingPositionPlayer.no} ${pendingPositionPlayer.name}</div>
+                <div class="mt-5 grid grid-cols-2 gap-2">
+                  ${positionOptions.map(position => `<button type="button" onclick="setGamePosition('${pendingPositionPlayer.no}', '${position}')" class="rounded-2xl px-0 py-3 text-sm font-semibold ${getGameEntry(pendingPositionPlayer.no).fieldPosition === position ? 'bg-[#16325C] text-white' : 'bg-gray-100 text-gray-600'}">${gamePositionLabels[position]}</button>`).join('')}
+                </div>
+                <div class="mt-5 flex justify-end">
+                  <button type="button" onclick="closePositionPicker()" class="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">閉じる</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${state.pendingOutPlayerNo ? `
+          <div class="fixed inset-0 z-[92] bg-[#0B162C]/52 backdrop-blur-sm" onclick="closeOutConfirm()">
+            <div class="flex min-h-full items-end justify-center px-4 pb-[max(24px,env(safe-area-inset-bottom)+16px)] sm:items-center sm:pb-0">
+              <div class="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(2,6,23,0.28)]" onclick="event.stopPropagation()">
+                <div class="text-center text-lg font-black tracking-tight text-gray-900">交代しますか？</div>
+                <div class="mt-5 flex items-center justify-center gap-2">
+                  <button type="button" onclick="closeOutConfirm()" class="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">キャンセル</button>
+                  <button type="button" onclick="confirmPlayerOut()" class="rounded-full bg-[#C80815] px-4 py-2 text-sm font-semibold text-white">交代</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      `;
     }
 
     // --- 4. レンダリング関数 ---
@@ -294,28 +910,12 @@
         </button>
       `;
 
-      const sortButtons = sortOptions.map(option => {
-        const arrow = state.sortKey === option.key ? (state.sortDirection === 'desc' ? '↓' : '↑') : '';
-        return `
-          <button
-            onclick="setSort('${option.key}')"
-            class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-              state.sortKey === option.key
-                ? 'bg-white/10 text-white'
-                : 'bg-white/6 text-white hover:bg-white/10'
-            }"
-          >
-            ${option.label}${arrow}
-          </button>
-        `;
-      }).join('');
-
       filterContainer.innerHTML = `
         <div class="grid grid-cols-5 gap-1.5">
           ${positionButtons}
         </div>
-        <div class="mt-2.5 grid grid-cols-5 gap-1.5">
-          ${rosterButton}${throwButton}${batButton}${sortButtons}
+        <div class="mt-2.5 grid grid-cols-3 gap-1.5">
+          ${rosterButton}${throwButton}${batButton}
         </div>
       `;
     }
@@ -323,7 +923,7 @@
     function comparePlayers(a, b) {
       let result = 0;
 
-      if (state.sortKey === 'age') {
+      if (state.sortMode === 'ageAsc' || state.sortMode === 'ageDesc') {
         const aValue = a.age ?? Number.POSITIVE_INFINITY;
         const bValue = b.age ?? Number.POSITIVE_INFINITY;
         if (aValue !== bValue) result = aValue - bValue;
@@ -335,7 +935,7 @@
         result = a.name.localeCompare(b.name, 'ja');
       }
 
-      return state.sortDirection === 'asc' ? result : result * -1;
+      return state.sortMode === 'ageDesc' ? result * -1 : result;
     }
 
     function renderPlayerList() {
@@ -354,7 +954,12 @@
             : p.pos === state.activePositionFilter;
         }
 
-        const matchesRosterFilter = state.rosterFilter === '育成' ? p.status === '育成' : p.status !== '育成';
+        const assignment = getPlayerAssignment(p.no);
+        const rosterStatus = assignment.rosterStatus;
+        const matchesRosterFilter =
+          state.rosterFilter === '支配下' ? rosterStatus === '支配下' :
+          state.rosterFilter === '育成' ? rosterStatus === '育成' :
+          assignment.squad === state.rosterFilter;
 
         let matchesThrowFilter = true;
         if (state.activeThrowFilter) {
@@ -379,19 +984,19 @@
           onclick="openDetail('${p.no}')"
           class="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
         >
-          <div class="absolute -right-4 -bottom-6 text-9xl font-black italic opacity-[0.03] pointer-events-none text-[#0B162C]">
+          <div class="absolute -right-4 -bottom-6 text-9xl font-black italic opacity-[0.03] pointer-events-none text-[#16325C]">
             ${p.no}
           </div>
           <div class="flex justify-between items-start relative z-10">
             <div class="flex-1 min-w-0 pr-4">
               <div class="mb-2 flex flex-wrap gap-1.5">
-                ${p.chips.map(chip => `
+                ${getDisplayChips(p).map(chip => `
                   <span class="rounded-full px-2.5 py-1 text-[11px] font-bold leading-none ${
                     chip === p.pos
                       ? 'bg-red-50 text-[#C80815]'
                       : chip === '育成'
                         ? 'bg-gray-200 text-gray-600'
-                        : 'bg-[#0B162C]/6 text-[#0B162C]/72'
+                        : 'bg-[#16325C]/6 text-[#16325C]/72'
                   }">
                     ${chip}
                   </span>
@@ -402,10 +1007,15 @@
                 ${p.nameKana ? `<span class="shrink-0 text-[11px] font-medium tracking-wide text-gray-400">${p.nameKana}</span>` : ''}
               </div>
               <p class="mt-1 text-sm text-gray-500 truncate">
-                ${[p.birthplace, p.age !== null ? `${p.age}歳` : null, p.draftLabel].filter(Boolean).join(' • ')}
+                ${[p.draft !== '-' ? p.draft : null, p.age !== null ? `${p.age}歳` : null, p.birthplace].filter(Boolean).join('  ')}
               </p>
             </div>
-            <div class="text-3xl font-black text-[#C80815] shrink-0">${p.no}</div>
+            <button
+              type="button"
+              onclick="cycleSortMode(event)"
+              class="shrink-0 text-3xl font-black text-[#C80815]"
+              aria-label="並び替えを変更"
+            >${p.no}</button>
           </div>
         </div>
       `).join('');
@@ -484,7 +1094,7 @@
             </div>
           </div>
 
-          <div class="bg-[#0B162C] px-5 pb-5 pt-4 text-white">
+          <div class="bg-[#16325C] px-5 pb-5 pt-4 text-white">
             <div class="flex items-end justify-between gap-5">
               <div class="min-w-0 flex-1 max-w-[70%]">
                 <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold text-white/80">
@@ -568,7 +1178,8 @@
     };
 
     window.toggleRosterFilter = () => {
-      state.rosterFilter = state.rosterFilter === '支配下' ? '育成' : '支配下';
+      const currentIndex = rosterFilterOrder.indexOf(state.rosterFilter);
+      state.rosterFilter = rosterFilterOrder[(currentIndex + 1) % rosterFilterOrder.length];
       renderFilters();
       renderPlayerList();
     };
@@ -591,15 +1202,309 @@
       renderPlayerList();
     };
 
-    window.setSort = (sortKey) => {
-      if (state.sortKey === sortKey) {
-        state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
-      } else {
-        state.sortKey = sortKey;
-        state.sortDirection = 'asc';
-      }
-      renderFilters();
+    window.cycleSortMode = (event) => {
+      event.stopPropagation();
+      state.sortMode =
+        state.sortMode === 'numberAsc' ? 'ageAsc' :
+        state.sortMode === 'ageAsc' ? 'ageDesc' :
+        'numberAsc';
       renderPlayerList();
+    };
+
+    window.openSettings = () => {
+      state.settingsOpen = true;
+      state.gameOpen = false;
+      state.pendingGameEntry = null;
+      state.pendingPositionChange = null;
+      state.pendingOutPlayerNo = null;
+      renderSearchDock();
+      renderSettingsModal();
+      renderGameModal();
+      updateBodyScroll();
+    };
+
+    window.closeSettings = () => {
+      state.settingsOpen = false;
+      renderSettingsModal();
+      renderSearchDock();
+      updateBodyScroll();
+    };
+
+    window.openGame = () => {
+      state.gameOpen = true;
+      state.settingsOpen = false;
+      state.gameViewIndex = 0;
+      state.pendingGameEntry = null;
+      state.pendingPositionChange = null;
+      state.pendingOutPlayerNo = null;
+      renderSearchDock();
+      renderSettingsModal();
+      renderGameModal();
+      updateBodyScroll();
+    };
+
+    window.closeGame = () => {
+      state.gameOpen = false;
+      state.gameViewIndex = 0;
+      state.pendingGameEntry = null;
+      state.pendingPositionChange = null;
+      state.pendingOutPlayerNo = null;
+      renderGameModal();
+      renderSearchDock();
+      updateBodyScroll();
+    };
+
+    window.shiftGameView = (direction) => {
+      const totalViews = 4;
+      state.gameViewIndex = (state.gameViewIndex + direction + totalViews) % totalViews;
+      state.pendingPositionChange = null;
+      state.pendingOutPlayerNo = null;
+      renderGameModal();
+    };
+
+    window.startGameSwipe = (event) => {
+      const touch = event.changedTouches?.[0];
+      if (!touch) return;
+      state.gameSwipeStartX = touch.clientX;
+      state.gameSwipeStartY = touch.clientY;
+    };
+
+    window.endGameSwipe = (event) => {
+      const touch = event.changedTouches?.[0];
+      if (!touch || state.gameSwipeStartX === undefined || state.gameSwipeStartY === undefined) return;
+      const diffX = touch.clientX - state.gameSwipeStartX;
+      const diffY = touch.clientY - state.gameSwipeStartY;
+      state.gameSwipeStartX = undefined;
+      state.gameSwipeStartY = undefined;
+      if (Math.abs(diffX) < 48 || Math.abs(diffX) < Math.abs(diffY)) return;
+      window.shiftGameView(diffX < 0 ? 1 : -1);
+    };
+
+    window.cycleTopScreen = () => {
+      if (state.settingsOpen) {
+        window.openGame();
+        return;
+      }
+      if (state.gameOpen) {
+        window.closeGame();
+        return;
+      }
+      window.openSettings();
+    };
+
+    window.setPlayerRosterStatus = (playerNo, rosterStatus) => {
+      const nextAssignments = { ...state.playerAssignments };
+      const previous = nextAssignments[playerNo] || { squad: '2軍' };
+      nextAssignments[playerNo] = {
+        rosterStatus,
+        squad: rosterStatus === '支配下'
+          ? (['1軍', '2軍', '3軍'].includes(previous.squad) ? previous.squad : '2軍')
+          : (previous.squad === '3軍' ? '3軍' : '2軍'),
+        bench: false
+      };
+      state.playerAssignments = nextAssignments;
+      savePlayerAssignments();
+      renderSettingsModal();
+      renderPlayerList();
+      renderFilters();
+    };
+
+    window.cyclePlayerRosterStatus = (playerNo) => {
+      const current = getPlayerAssignment(playerNo);
+      window.setPlayerRosterStatus(playerNo, current.rosterStatus === '支配下' ? '育成' : '支配下');
+    };
+
+    window.setPlayerSquad = (playerNo, squad) => {
+      const current = getPlayerAssignment(playerNo);
+      state.playerAssignments = {
+        ...state.playerAssignments,
+        [playerNo]: {
+          ...current,
+          squad,
+          bench: squad === '1軍' ? current.bench : false
+        }
+      };
+      savePlayerAssignments();
+      renderSettingsModal();
+    };
+
+    window.cyclePlayerSquad = (playerNo) => {
+      const current = getPlayerAssignment(playerNo);
+      const order = current.rosterStatus === '支配下' ? ['1軍', '2軍', '3軍'] : ['2軍', '3軍'];
+      const nextIndex = (order.indexOf(current.squad) + 1) % order.length;
+      window.setPlayerSquad(playerNo, order[nextIndex]);
+    };
+
+    window.togglePlayerBench = (playerNo) => {
+      const current = getPlayerAssignment(playerNo);
+      state.playerAssignments = {
+        ...state.playerAssignments,
+        [playerNo]: {
+          ...current,
+          bench: current.squad === '1軍' ? !current.bench : false
+        }
+      };
+      savePlayerAssignments();
+      renderSettingsModal();
+    };
+
+    window.openGameEntryModal = (playerNo) => {
+      const player = playersData.find(item => item.no === playerNo);
+      const gameMembers = playersData.filter(item => {
+        const assignment = getPlayerAssignment(item.no);
+        return assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+      });
+      const defaultPosition = getRecommendedFieldPosition(player, gameMembers);
+      const defaultOrder = player.pos === '投手' && hasDhLineup(gameMembers) && defaultPosition === '投'
+        ? 'P'
+        : getFirstEmptyBattingOrder(gameMembers);
+      state.pendingGameEntry = {
+        playerNo,
+        battingOrder: defaultOrder,
+        fieldPosition: defaultPosition
+      };
+      renderGameModal();
+    };
+
+    window.closeGameEntryModal = () => {
+      state.pendingGameEntry = null;
+      renderGameModal();
+    };
+
+    window.openPositionPicker = (playerNo) => {
+      state.pendingPositionChange = { playerNo };
+      renderGameModal();
+    };
+
+    window.closePositionPicker = () => {
+      state.pendingPositionChange = null;
+      renderGameModal();
+    };
+
+    window.openOutConfirm = (playerNo) => {
+      state.pendingOutPlayerNo = playerNo;
+      renderGameModal();
+    };
+
+    window.closeOutConfirm = () => {
+      state.pendingOutPlayerNo = null;
+      renderGameModal();
+    };
+
+    window.setPendingGameOrder = (battingOrder) => {
+      if (!state.pendingGameEntry) return;
+      state.pendingGameEntry = { ...state.pendingGameEntry, battingOrder };
+      renderGameModal();
+    };
+
+    window.setPendingGamePosition = (fieldPosition) => {
+      if (!state.pendingGameEntry) return;
+      state.pendingGameEntry = { ...state.pendingGameEntry, fieldPosition };
+      renderGameModal();
+    };
+
+    window.confirmGameEntry = () => {
+      if (!state.pendingGameEntry) return;
+      const { playerNo, battingOrder, fieldPosition } = state.pendingGameEntry;
+      const nextStatuses = { ...state.gameStatuses };
+      const hasDh = hasDhLineup(playersData) || fieldPosition === 'DH' || battingOrder === 'P';
+      const numericOrder = battingOrder === 'P' ? null : Number(battingOrder);
+
+      const replacedPlayer = playersData.find(item =>
+        item.no !== playerNo &&
+        getGameEntry(item.no).status === '出場' &&
+        getGameEntry(item.no).battingOrder === numericOrder
+      );
+
+      if (numericOrder !== null) {
+        if (replacedPlayer) {
+          nextStatuses[replacedPlayer.no] = {
+            ...getGameEntry(replacedPlayer.no),
+            status: '退場',
+            battingOrder: null
+          };
+        }
+      }
+
+      const currentPitcher = playersData.find(item =>
+        item.no !== playerNo &&
+        getGameEntry(item.no).status === '出場' &&
+        getGameEntry(item.no).fieldPosition === '投' &&
+        getGameEntry(item.no).battingOrder === null
+      );
+
+      if (fieldPosition === '投' && hasDh && currentPitcher) {
+        nextStatuses[currentPitcher.no] = {
+          ...getGameEntry(currentPitcher.no),
+          status: '退場',
+          battingOrder: null
+        };
+      }
+
+      nextStatuses[playerNo] = {
+        status: '出場',
+        battingOrder: numericOrder,
+        fieldPosition
+      };
+
+      state.gameStatuses = nextStatuses;
+      state.pendingGameEntry = null;
+      saveGameStatuses();
+      renderGameModal();
+    };
+
+    window.markPlayerOut = (playerNo) => {
+      state.gameStatuses = {
+        ...state.gameStatuses,
+        [playerNo]: {
+          ...getGameEntry(playerNo),
+          status: '退場',
+          battingOrder: null
+        }
+      };
+      state.pendingOutPlayerNo = null;
+      saveGameStatuses();
+      renderGameModal();
+    };
+
+    window.confirmPlayerOut = () => {
+      if (!state.pendingOutPlayerNo) return;
+      window.markPlayerOut(state.pendingOutPlayerNo);
+    };
+
+    window.setGamePosition = (playerNo, fieldPosition) => {
+      const entry = getGameEntry(playerNo);
+      state.gameStatuses = {
+        ...state.gameStatuses,
+        [playerNo]: {
+          ...entry,
+          fieldPosition
+        }
+      };
+      state.pendingPositionChange = null;
+      saveGameStatuses();
+      renderGameModal();
+    };
+
+    window.returnPlayerToBench = (playerNo) => {
+      state.gameStatuses = {
+        ...state.gameStatuses,
+        [playerNo]: {
+          ...getGameEntry(playerNo),
+          status: '控え',
+          battingOrder: null,
+          fieldPosition: null
+        }
+      };
+      saveGameStatuses();
+      renderGameModal();
+    };
+
+    window.resetGameState = () => {
+      if (!window.confirm('試合観戦メンバーをリセットしますか？')) return;
+      state.gameStatuses = {};
+      saveGameStatuses();
+      renderGameModal();
     };
 
     window.toggleSearch = () => {
@@ -625,16 +1530,16 @@
         renderDetailModal();
         detailModal.classList.remove('hidden');
         renderSearchDock();
-        document.body.style.overflow = 'hidden'; // 背面スクロール防止
+        updateBodyScroll();
       }
     };
 
     window.closeDetail = () => {
       state.selectedPlayer = null;
       detailModal.classList.add('hidden');
-      document.body.style.overflow = '';
       detailModal.innerHTML = ''; // メモリ解放
       renderSearchDock();
+      updateBodyScroll();
     };
 
     // --- 6. イベントリスナー ---
