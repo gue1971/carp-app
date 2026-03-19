@@ -42,14 +42,17 @@
         <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
         <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
         <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
-        <div class="relative flex items-center justify-center px-4 pb-5 pt-4">
+        <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
+          <div class="h-11 w-11"></div>
           <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
             <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
           </button>
+          <div class="h-11 w-11"></div>
         </div>
       </div>
 
       <div class="bg-[#132B4D] px-4 pb-4 pt-4">
+        <div class="mb-3 text-[12px] font-semibold tracking-[0.18em] text-white">選手一覧</div>
         <div id="filter-container" class="rounded-[22px] bg-white/4 px-2.5 pt-2.5 pb-2">
           <!-- JSで生成 -->
         </div>
@@ -169,6 +172,23 @@
     const PLAYER_GAME_STATUS_KEY = 'carp-player-game-status-v1';
     const settingsPositionOrder = ['投手', '捕手', '内野手', '外野手'];
     const defaultGamePositions = ['投', '捕', '一', '二', '三', '遊', '左', '中', '右'];
+    const gameEntryPositionLayout = [
+      ['左', '中', '右'],
+      ['三', '遊', '二', '一'],
+      ['投', '捕', 'DH'],
+      ['unset']
+    ];
+    const battingOrderLayout = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9]
+    ];
+    const gamePositionPickerLayout = [
+      ['左', '中', '右'],
+      ['三', '遊', '二', '一'],
+      ['投', '捕', 'DH'],
+      ['bench', 'cancel']
+    ];
     const gamePositionLabels = {
       '投': 'ピッチャー',
       '捕': 'キャッチャー',
@@ -180,7 +200,9 @@
       '中': 'センター',
       '右': 'ライト',
       'DH': 'DH',
-      'bench': 'ベンチ'
+      'unset': '未定',
+      'bench': 'ベンチ',
+      'cancel': 'キャンセル'
     };
 
     function createDefaultAssignments() {
@@ -220,6 +242,12 @@
       }
     }
 
+    function normalizeBattingOrder(value) {
+      if (Number.isInteger(value)) return value;
+      if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+      return null;
+    }
+
     function loadGameStatuses() {
       try {
         const raw = JSON.parse(localStorage.getItem(PLAYER_GAME_STATUS_KEY) || '{}');
@@ -229,7 +257,7 @@
           }
           return [playerNo, {
             status: ['出場', '控え', '退場'].includes(value?.status) ? value.status : '控え',
-            battingOrder: Number.isInteger(value?.battingOrder) ? value.battingOrder : null,
+            battingOrder: normalizeBattingOrder(value?.battingOrder),
             fieldPosition: value?.fieldPosition || null
           }];
         }));
@@ -262,7 +290,7 @@
       const entry = state.gameStatuses[playerNo];
       return {
         status: ['出場', '控え', '退場'].includes(entry?.status) ? entry.status : '控え',
-        battingOrder: Number.isInteger(entry?.battingOrder) ? entry.battingOrder : null,
+        battingOrder: normalizeBattingOrder(entry?.battingOrder),
         fieldPosition: entry?.fieldPosition || null
       };
     }
@@ -330,6 +358,10 @@
       }) || null;
     }
 
+    function getFieldPositionLabel(fieldPosition) {
+      return gamePositionLabels[fieldPosition] || '未定';
+    }
+
     function getDisplayChips(player) {
       const chips = [player.pos];
       if (getRosterStatus(player) === '育成') chips.push('育成');
@@ -390,9 +422,11 @@
       settingsOpen: false,
       gameOpen: false,
       gameViewIndex: 0,
+      pendingGameSlot: null,
       pendingGameEntry: null,
       pendingPositionChange: null,
       pendingOutPlayerNo: null,
+      pendingClearLineup: false,
       playerAssignments: loadPlayerAssignments(),
       gameStatuses: loadGameStatuses(),
       rosterFilter: '支配下',
@@ -405,6 +439,13 @@
 
     const positionFilters = ['投手', '野手', '捕手', '内野手', '外野手'];
     const rosterFilterOrder = ['支配下', '1軍', '2軍', '3軍', '育成'];
+    const rosterFilterLabels = {
+      '支配下': '支配下登録',
+      '1軍': '一軍',
+      '2軍': '二軍',
+      '3軍': '三軍',
+      '育成': '育成登録'
+    };
 
     // --- 3. DOM要素 ---
     const searchInput = document.getElementById('search-input');
@@ -544,10 +585,10 @@
                   return `
                     <div class="rounded-2xl bg-gray-50 px-4 py-4">
                       <div class="flex items-center gap-3">
-                        <div class="min-w-0 flex-1">
+                        <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
                           <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
                           <div class="mt-1 text-left text-xs font-semibold tracking-[0.06em] text-gray-400">${player.throw_bat}</div>
-                        </div>
+                        </button>
                         <div class="ml-auto flex shrink-0 items-center justify-end gap-2">
                           <button type="button" onclick="cyclePlayerRosterStatus('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.rosterStatus === '支配下' ? 'bg-[#C80815] text-white' : 'bg-[#132B4D] text-white'}">${assignment.rosterStatus}</button>
                           <button type="button" onclick="cyclePlayerSquad('${player.no}')" class="w-14 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.squad === '1軍' ? 'bg-[#C80815] text-white' : 'bg-[#132B4D] text-white'}">${assignment.squad}</button>
@@ -593,10 +634,10 @@
       }));
       const retiredPlayers = gameMembers.filter(player => getGameStatus(player.no) === '退場');
       const gamePages = [
-        { key: 'active', title: '出場選手' },
+        { key: 'active', title: '出場' },
         { key: 'benchFielders', title: '控え野手' },
-        { key: 'retired', title: '退場選手' },
-        { key: 'benchPitchers', title: '控え投手' }
+        { key: 'benchPitchers', title: '控え投手' },
+        { key: 'retired', title: '交代' }
       ];
       const currentPage = gamePages[state.gameViewIndex % gamePages.length];
 
@@ -609,7 +650,6 @@
         status === '出場' ? 'OUT' :
         'RETURN';
       const positionOptions = getGamePositions();
-      const positionPickerOptions = [...positionOptions, 'bench'];
       const pendingPlayer = state.pendingGameEntry
         ? playersData.find(player => player.no === state.pendingGameEntry.playerNo)
         : null;
@@ -639,7 +679,7 @@
               <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
             </button>
             <div class="w-12 text-center text-xs font-semibold text-gray-500">${player.batHand || '-'}</div>
-            <button type="button" onclick="event.stopPropagation(); openPositionPicker('${player.no}')" class="w-24 rounded-full bg-gray-100 px-2 py-1.5 text-center text-[10px] font-semibold ${duplicatePosition ? 'text-[#C80815]' : 'text-gray-700'}">${gamePositionLabels[entry.fieldPosition] || '-'}</button>
+            <button type="button" onclick="event.stopPropagation(); openPositionPicker('${player.no}')" class="w-24 rounded-full bg-gray-100 px-2 py-1.5 text-center text-[10px] font-semibold ${duplicatePosition ? 'text-[#C80815]' : 'text-gray-700'}">${getFieldPositionLabel(entry.fieldPosition)}</button>
           `;
         }
 
@@ -651,15 +691,15 @@
               <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
             </button>
             <div class="w-12 text-center text-xs font-semibold text-gray-500">${player.throwHand || '-'}</div>
-            <button type="button" onclick="event.stopPropagation(); openPositionPicker('${player.no}')" class="w-24 rounded-full bg-gray-100 px-2 py-1.5 text-center text-[10px] font-semibold ${duplicatePosition ? 'text-[#C80815]' : 'text-gray-700'}">${gamePositionLabels[entry.fieldPosition] || '-'}</button>
+            <button type="button" onclick="event.stopPropagation(); openOutConfirm('${player.no}')" class="w-24 rounded-full bg-gray-100 px-2 py-1.5 text-center text-[10px] font-semibold ${duplicatePosition ? 'text-[#C80815]' : 'text-gray-700'}">${getFieldPositionLabel(entry.fieldPosition)}</button>
           `;
         }
 
         if (mode === 'bench-pitcher') {
           return `
-            <div class="min-w-0 flex-1">
+            <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
               <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
-            </div>
+            </button>
             <div class="w-16 text-center text-xs font-semibold text-gray-500">${player.throwHand || '-'}</div>
             <button type="button" onclick="openGameEntryModal('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${statusTone(getGameStatus(player.no))}">${gameActionLabel(getGameStatus(player.no))}</button>
           `;
@@ -667,19 +707,19 @@
 
         if (mode === 'bench-fielder') {
           return `
-            <div class="min-w-0 flex-1">
+            <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
               <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
-            </div>
+            </button>
             <div class="w-16 text-center text-xs font-semibold text-gray-500">${player.batHand || '-'}</div>
             <button type="button" onclick="openGameEntryModal('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${statusTone(getGameStatus(player.no))}">${gameActionLabel(getGameStatus(player.no))}</button>
           `;
         }
 
         return `
-          <div class="min-w-0 flex-1">
+          <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
             <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
             <div class="mt-1 text-left text-xs font-semibold tracking-[0.06em] text-gray-400">${player.throw_bat}</div>
-          </div>
+          </button>
           <div class="w-16"></div>
           <button type="button" onclick="returnPlayerToBench('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold bg-gray-300 text-gray-700">RETURN</button>
         `;
@@ -700,7 +740,7 @@
             </div>
           </div>
           <div class="bg-[#132B4D] px-4 pb-4 pt-4 text-white">
-            <div class="text-[12px] font-semibold tracking-[0.18em] text-white/72">GAME MEMBERS</div>
+            <div class="text-[12px] font-semibold tracking-[0.18em] text-white/72">メンバー</div>
             <div class="mt-3 grid grid-cols-4 gap-1.5">
               ${gamePages.map((page, index) => `
                 <button
@@ -723,14 +763,14 @@
           ${currentPage.key === 'active' ? `
             <section class="space-y-4">
               <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
-                <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">BATTING ORDER</div>
+                <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">打順</div>
                 <div class="space-y-3">
                         ${battingOrderSlots.map(slot => `
                           <div class="rounded-2xl bg-gray-50 px-4 py-4">
                             <div class="flex items-center gap-3">
                         <div class="w-7 shrink-0 text-sm font-black text-gray-400">${slot.order}</div>
                               ${slot.player ? renderGamePlayerCard(slot.player, 'active-lineup') : `
-                                <div class="min-w-0 flex-1 text-sm font-semibold text-gray-300">未設定</div>
+                                <button type="button" onclick="openBenchFieldersForOrder(${slot.order})" class="min-w-0 flex-1 text-left text-sm font-semibold text-gray-300">未設定</button>
                                 <div class="w-24"></div>
                               `}
                             </div>
@@ -739,12 +779,12 @@
                 </div>
               </div>
               <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
-                <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">PITCHER</div>
+                <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">投手</div>
                     <div class="rounded-2xl bg-gray-50 px-4 py-4">
                       <div class="flex items-center gap-3">
-                        <div class="w-7 shrink-0 text-sm font-black text-gray-400">投</div>
                         ${activePitcher ? renderGamePlayerCard(activePitcher, 'active-pitcher') : `
-                          <div class="min-w-0 flex-1 text-sm font-semibold text-gray-300">未設定</div>
+                          <button type="button" onclick="openBenchPitchersForSlot()" class="min-w-0 flex-1 text-left text-sm font-semibold text-gray-300">未設定</button>
+                          <div class="w-12"></div>
                           <div class="w-24"></div>
                         `}
                       </div>
@@ -778,7 +818,7 @@
             <section class="space-y-4">
               <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="mb-4 flex items-center justify-between gap-3">
-                  <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">退場選手</h2>
+                  <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">交代</h2>
                   <div class="text-sm font-black text-gray-400">${retiredPlayers.length}</div>
                 </div>
                 <div class="space-y-3">
@@ -794,7 +834,7 @@
               <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="flex items-center justify-between gap-3">
                   <div class="text-sm font-black tracking-[0.16em] text-gray-400">GAME SETTINGS</div>
-                  <button type="button" onclick="resetGameState()" class="rounded-full bg-gray-200 px-4 py-2 text-xs font-semibold text-gray-700">リセット</button>
+                  <button type="button" onclick="openClearLineupConfirm()" class="rounded-full bg-gray-200 px-4 py-2 text-xs font-semibold text-gray-700">メンバー表をクリア</button>
                 </div>
               </div>
             </section>
@@ -826,16 +866,33 @@
                 <div class="mt-1 text-sm font-semibold text-gray-400">${pendingPlayer.throw_bat}</div>
                 <div class="mt-5">
                   <div class="mb-2 text-[11px] font-bold tracking-[0.14em] text-gray-400">打順</div>
-                  <div class="grid grid-cols-3 gap-2">
-                    ${(pendingPlayer.pos === '投手' && hasDhLineup(gameMembers) ? ['P', ...Array.from({ length: 9 }, (_, index) => index + 1)] : Array.from({ length: 9 }, (_, index) => index + 1)).map(order => `
-                      <button type="button" onclick="setPendingGameOrder('${order}')" class="rounded-2xl px-0 py-2 text-sm font-semibold ${state.pendingGameEntry.battingOrder === order ? 'bg-[#C80815] text-white' : 'bg-gray-100 text-gray-600'}">${order === 'P' ? '打順なし' : `${order}番`}</button>
+                  <div class="space-y-2">
+                    ${battingOrderLayout.map(row => `
+                      <div class="grid grid-cols-3 gap-2">
+                        ${row.map(order => `
+                          <button type="button" onclick="setPendingGameOrder('${order}')" class="rounded-2xl px-0 py-2 text-sm font-semibold ${state.pendingGameEntry.battingOrder === order ? 'bg-[#C80815] text-white' : 'bg-gray-100 text-gray-600'}">${order}番</button>
+                        `).join('')}
+                      </div>
                     `).join('')}
+                    ${pendingPlayer.pos === '投手' ? `
+                      <div class="grid grid-cols-3 gap-2">
+                        <div></div>
+                        <button type="button" onclick="setPendingGameOrder('P')" class="rounded-2xl px-0 py-2 text-sm font-semibold ${state.pendingGameEntry.battingOrder === 'P' ? 'bg-[#C80815] text-white' : 'bg-gray-100 text-gray-600'}">投手</button>
+                        <div></div>
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
                 <div class="mt-5">
                   <div class="mb-2 text-[11px] font-bold tracking-[0.14em] text-gray-400">守備位置</div>
-                  <div class="grid grid-cols-4 gap-2">
-                    ${positionOptions.map(position => `<button type="button" onclick="setPendingGamePosition('${position}')" class="rounded-2xl px-0 py-2 text-[12px] font-semibold ${state.pendingGameEntry.fieldPosition === position ? 'bg-[#132B4D] text-white' : 'bg-gray-100 text-gray-600'}">${gamePositionLabels[position]}</button>`).join('')}
+                  <div class="space-y-2">
+                    ${gameEntryPositionLayout.map(row => `
+                      <div class="flex justify-center gap-2">
+                        ${row.map(position => `
+                          <button type="button" onclick="setPendingGamePosition('${position}')" class="min-w-[88px] rounded-2xl px-0 py-2 text-[12px] font-semibold ${((position === 'unset' && state.pendingGameEntry.fieldPosition === null) || state.pendingGameEntry.fieldPosition === position) ? 'bg-[#132B4D] text-white' : 'bg-gray-100 text-gray-600'}">${gamePositionLabels[position]}</button>
+                        `).join('')}
+                      </div>
+                    `).join('')}
                   </div>
                 </div>
                 <div class="mt-5 flex items-center justify-end gap-2">
@@ -853,11 +910,17 @@
               <div class="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(2,6,23,0.28)]" onclick="event.stopPropagation()">
                 <div class="text-[12px] font-semibold tracking-[0.16em] text-gray-400">守備位置変更</div>
                 <div class="mt-2 text-lg font-black tracking-tight text-gray-900">${pendingPositionPlayer.no} ${pendingPositionPlayer.name}</div>
-                <div class="mt-5 grid grid-cols-2 gap-2">
-                  ${positionPickerOptions.map(position => `<button type="button" onclick="setGamePosition('${pendingPositionPlayer.no}', '${position}')" class="rounded-2xl px-0 py-3 text-sm font-semibold ${getGameEntry(pendingPositionPlayer.no).fieldPosition === position ? 'bg-[#132B4D] text-white' : 'bg-gray-100 text-gray-600'}">${gamePositionLabels[position]}</button>`).join('')}
-                </div>
-                <div class="mt-5 flex justify-end">
-                  <button type="button" onclick="closePositionPicker()" class="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">閉じる</button>
+                <div class="mt-5 space-y-2">
+                  ${gamePositionPickerLayout.map(row => `
+                    <div class="flex justify-center gap-2">
+                      ${row.map(position => `
+                        ${position === 'cancel'
+                          ? `<button type="button" onclick="closePositionPicker()" class="min-w-[88px] rounded-2xl bg-gray-100 px-0 py-3 text-sm font-semibold text-gray-600">${gamePositionLabels[position]}</button>`
+                          : `<button type="button" onclick="setGamePosition('${pendingPositionPlayer.no}', '${position}')" class="min-w-[88px] rounded-2xl px-0 py-3 text-sm font-semibold ${getGameEntry(pendingPositionPlayer.no).fieldPosition === position ? 'bg-[#132B4D] text-white' : 'bg-gray-100 text-gray-600'}">${gamePositionLabels[position]}</button>`
+                        }
+                      `).join('')}
+                    </div>
+                  `).join('')}
                 </div>
               </div>
             </div>
@@ -868,10 +931,25 @@
           <div class="fixed inset-0 z-[92] bg-[#0B162C]/52 backdrop-blur-sm" onclick="closeOutConfirm()">
             <div class="flex min-h-full items-end justify-center px-4 pb-[max(24px,env(safe-area-inset-bottom)+16px)] sm:items-center sm:pb-0">
               <div class="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(2,6,23,0.28)]" onclick="event.stopPropagation()">
-                <div class="text-center text-lg font-black tracking-tight text-gray-900">退場しますか？</div>
+                <div class="text-center text-lg font-black tracking-tight text-gray-900">交代しますか？</div>
                 <div class="mt-5 flex items-center justify-center gap-2">
                   <button type="button" onclick="closeOutConfirm()" class="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">キャンセル</button>
-                  <button type="button" onclick="confirmPlayerOut()" class="rounded-full bg-[#C80815] px-4 py-2 text-sm font-semibold text-white">退場</button>
+                  <button type="button" onclick="confirmPlayerOut()" class="rounded-full bg-[#C80815] px-4 py-2 text-sm font-semibold text-white">交代</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${state.pendingClearLineup ? `
+          <div class="fixed inset-0 z-[92] bg-[#0B162C]/52 backdrop-blur-sm" onclick="closeClearLineupConfirm()">
+            <div class="flex min-h-full items-end justify-center px-4 pb-[max(24px,env(safe-area-inset-bottom)+16px)] sm:items-center sm:pb-0">
+              <div class="w-full max-w-sm rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(2,6,23,0.28)]" onclick="event.stopPropagation()">
+                <div class="text-center text-lg font-black tracking-tight text-gray-900">メンバー表をクリアしますか？</div>
+                <div class="mt-2 text-center text-sm font-medium text-gray-500">出場・交代の選手はすべて控えに戻ります。</div>
+                <div class="mt-5 flex items-center justify-center gap-2">
+                  <button type="button" onclick="closeClearLineupConfirm()" class="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600">キャンセル</button>
+                  <button type="button" onclick="confirmClearLineup()" class="rounded-full bg-[#C80815] px-4 py-2 text-sm font-semibold text-white">クリア</button>
                 </div>
               </div>
             </div>
@@ -887,7 +965,7 @@
           onclick="toggleRosterFilter()"
           class="min-w-0 rounded-xl bg-transparent px-0 py-2 text-[11px] font-semibold tracking-tight text-white transition-colors hover:bg-white/6"
         >
-          ${state.rosterFilter}
+          ${rosterFilterLabels[state.rosterFilter] || state.rosterFilter}
         </button>
       `;
 
@@ -1109,8 +1187,10 @@
             <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
             <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
             <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
-            <div class="relative flex items-center justify-center px-5 pb-5 pt-4">
+            <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
+              <div class="h-11 w-11"></div>
               <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
+              <div class="h-11 w-11"></div>
             </div>
           </div>
 
@@ -1237,6 +1317,7 @@
       state.pendingGameEntry = null;
       state.pendingPositionChange = null;
       state.pendingOutPlayerNo = null;
+      state.pendingClearLineup = false;
       renderSearchDock();
       renderSettingsModal();
       renderGameModal();
@@ -1254,6 +1335,7 @@
       state.gameOpen = true;
       state.settingsOpen = false;
       state.gameViewIndex = 0;
+      state.pendingGameSlot = null;
       state.pendingGameEntry = null;
       state.pendingPositionChange = null;
       state.pendingOutPlayerNo = null;
@@ -1266,9 +1348,11 @@
     window.closeGame = () => {
       state.gameOpen = false;
       state.gameViewIndex = 0;
+      state.pendingGameSlot = null;
       state.pendingGameEntry = null;
       state.pendingPositionChange = null;
       state.pendingOutPlayerNo = null;
+      state.pendingClearLineup = false;
       renderGameModal();
       renderSearchDock();
       updateBodyScroll();
@@ -1278,6 +1362,25 @@
       state.gameViewIndex = index;
       state.pendingPositionChange = null;
       state.pendingOutPlayerNo = null;
+      state.pendingClearLineup = false;
+      renderGameModal();
+    };
+
+    window.openBenchFieldersForOrder = (battingOrder) => {
+      state.gameViewIndex = 1;
+      state.pendingGameSlot = { battingOrder, fieldPosition: null };
+      state.pendingPositionChange = null;
+      state.pendingOutPlayerNo = null;
+      state.pendingClearLineup = false;
+      renderGameModal();
+    };
+
+    window.openBenchPitchersForSlot = () => {
+      state.gameViewIndex = 2;
+      state.pendingGameSlot = { battingOrder: 'P', fieldPosition: '投' };
+      state.pendingPositionChange = null;
+      state.pendingOutPlayerNo = null;
+      state.pendingClearLineup = false;
       renderGameModal();
     };
 
@@ -1355,19 +1458,22 @@
         const assignment = getPlayerAssignment(item.no);
         return assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
       });
+      const slotPreset = state.pendingGameSlot;
       const defaultPosition = getRecommendedFieldPosition(player, gameMembers);
-      const defaultOrder = player.pos === '投手' && hasDhLineup(gameMembers) && defaultPosition === '投'
-        ? 'P'
-        : getFirstEmptyBattingOrder(gameMembers);
+      const defaultOrder = slotPreset?.battingOrder ?? (
+        player.pos === '投手' ? 'P' : getFirstEmptyBattingOrder(gameMembers)
+      );
       state.pendingGameEntry = {
         playerNo,
         battingOrder: defaultOrder,
-        fieldPosition: defaultPosition
+        fieldPosition: slotPreset?.fieldPosition ?? defaultPosition
       };
+      state.pendingGameSlot = null;
       renderGameModal();
     };
 
     window.closeGameEntryModal = () => {
+      state.pendingGameSlot = null;
       state.pendingGameEntry = null;
       renderGameModal();
     };
@@ -1392,6 +1498,16 @@
       renderGameModal();
     };
 
+    window.openClearLineupConfirm = () => {
+      state.pendingClearLineup = true;
+      renderGameModal();
+    };
+
+    window.closeClearLineupConfirm = () => {
+      state.pendingClearLineup = false;
+      renderGameModal();
+    };
+
     window.setPendingGameOrder = (battingOrder) => {
       if (!state.pendingGameEntry) return;
       const normalizedOrder = battingOrder === 'P' ? 'P' : Number(battingOrder);
@@ -1401,7 +1517,10 @@
 
     window.setPendingGamePosition = (fieldPosition) => {
       if (!state.pendingGameEntry) return;
-      state.pendingGameEntry = { ...state.pendingGameEntry, fieldPosition };
+      state.pendingGameEntry = {
+        ...state.pendingGameEntry,
+        fieldPosition: fieldPosition === 'unset' ? null : fieldPosition
+      };
       renderGameModal();
     };
 
@@ -1450,20 +1569,30 @@
       };
 
       state.gameStatuses = nextStatuses;
+      state.gameViewIndex = 0;
       state.pendingGameEntry = null;
       saveGameStatuses();
       renderGameModal();
     };
 
     window.markPlayerOut = (playerNo) => {
+      const player = playersData.find(item => item.no === playerNo);
+      const currentEntry = getGameEntry(playerNo);
       state.gameStatuses = {
         ...state.gameStatuses,
         [playerNo]: {
-          ...getGameEntry(playerNo),
+          ...currentEntry,
           status: '退場',
           battingOrder: null
         }
       };
+      state.pendingGameSlot = {
+        battingOrder: currentEntry.battingOrder ?? (currentEntry.fieldPosition === '投' ? 'P' : null),
+        fieldPosition: currentEntry.fieldPosition === '投' && currentEntry.battingOrder === null
+          ? '投'
+          : null
+      };
+      state.gameViewIndex = player?.pos === '投手' ? 2 : 1;
       state.pendingOutPlayerNo = null;
       saveGameStatuses();
       renderGameModal();
@@ -1508,9 +1637,21 @@
       renderGameModal();
     };
 
-    window.resetGameState = () => {
-      if (!window.confirm('試合観戦メンバーをリセットしますか？')) return;
-      state.gameStatuses = {};
+    window.confirmClearLineup = () => {
+      state.gameStatuses = Object.fromEntries(
+        Object.entries(state.gameStatuses).map(([playerNo, entry]) => {
+          if (entry?.status === '出場' || entry?.status === '退場') {
+            return [playerNo, {
+              ...entry,
+              status: '控え',
+              battingOrder: null,
+              fieldPosition: null
+            }];
+          }
+          return [playerNo, entry];
+        })
+      );
+      state.pendingClearLineup = false;
       saveGameStatuses();
       renderGameModal();
     };
