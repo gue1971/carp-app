@@ -36,7 +36,7 @@
 <body class="bg-[#132B4D] text-gray-900 font-sans antialiased pb-safe">
 
   <!-- Main View -->
-  <div id="main-view" class="min-h-screen bg-white">
+  <div id="main-view" class="min-h-screen bg-[#132B4D]">
     <!-- Header & Search -->
     <div class="sticky top-0 z-40 shadow-sm">
       <div class="relative overflow-hidden bg-[#b00c15] pt-safe-top">
@@ -44,22 +44,22 @@
         <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
         <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
         <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
-          <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">‹</button>
+          <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white transition hover:text-white active:scale-95">‹</button>
           <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
-          <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">›</button>
+          <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white transition hover:text-white active:scale-95">›</button>
         </div>
       </div>
 
-      <div class="bg-[#132B4D] px-4 pb-4 pt-4">
-        <div class="mb-3 text-[12px] font-semibold tracking-[0.18em] text-white">選手一覧</div>
-        <div id="filter-container" class="rounded-[22px] bg-white/4 px-2.5 pt-2.5 pb-2">
+      <div class="bg-white px-4 pb-4 pt-4">
+        <div class="mb-3 text-[12px] font-semibold tracking-[0.18em] text-gray-900">選手一覧</div>
+        <div id="filter-container" class="rounded-[22px] bg-[#132B4D]/4 px-2.5 pt-2.5 pb-2">
           <!-- JSで生成 -->
         </div>
       </div>
     </div>
 
     <!-- Player List -->
-    <div id="player-list" class="grid grid-cols-1 gap-px pb-[calc(env(safe-area-inset-bottom)+112px)] md:grid-cols-2 lg:grid-cols-3">
+    <div id="player-list" class="grid grid-cols-1 gap-px pt-px pb-[calc(env(safe-area-inset-bottom)+112px)] md:grid-cols-2 lg:grid-cols-3">
       <!-- JSで生成 -->
     </div>
 
@@ -67,7 +67,7 @@
       <!-- JSで生成 -->
     </div>
 
-    <div id="search-dock" class="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+20px)] z-[65] flex justify-end px-4"></div>
+    <div id="search-dock" class="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+20px)] z-[65] flex justify-center px-4"></div>
   </div>
 
   <!-- Detail Modal -->
@@ -757,13 +757,21 @@
           .sort((a, b) => Number(a.no) - Number(b.no))
       })).filter(group => group.players.length > 0);
 
-      const countTone = (count, limit) => count > limit ? 'text-[#b00c15]' : 'text-white';
+      const countTone = (count, limit) => count > limit ? 'text-[#b00c15]' : 'text-gray-900';
       const renderBreakdown = (counts) => `
-        <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-semibold leading-none text-white/70">
-          <div class="flex items-center justify-between gap-2"><span>投手</span><span class="text-white/88">${counts.pitcher}</span></div>
-          <div class="flex items-center justify-between gap-2"><span>捕手</span><span class="text-white/88">${counts.catcher}</span></div>
-          <div class="flex items-center justify-between gap-2"><span>内野</span><span class="text-white/88">${counts.infielder}</span></div>
-          <div class="flex items-center justify-between gap-2"><span>外野</span><span class="text-white/88">${counts.outfielder}</span></div>
+        <div class="text-right">
+          <div class="grid grid-cols-4 gap-x-3 text-[10px] font-bold leading-none text-gray-500">
+            <span>投手</span>
+            <span>捕手</span>
+            <span>内野手</span>
+            <span>外野手</span>
+          </div>
+          <div class="mt-1 grid grid-cols-4 gap-x-3 text-[15px] font-black leading-none text-gray-900">
+            <span>${counts.pitcher}</span>
+            <span>${counts.catcher}</span>
+            <span>${counts.infielder}</span>
+            <span>${counts.outfielder}</span>
+          </div>
         </div>
       `;
       const registeredBreakdown = {
@@ -816,32 +824,32 @@
             <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
             <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
             <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
-              <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">‹</button>
+              <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white transition hover:text-white active:scale-95">‹</button>
               <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
-              <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">›</button>
+              <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white transition hover:text-white active:scale-95">›</button>
             </div>
           </div>
-          <div class="bg-[#132B4D] px-4 pb-4 pt-4 text-white">
-            <div class="text-[12px] font-semibold tracking-[0.18em] text-white/72">選手登録設定</div>
+          <div class="border-b border-[#132B4D] bg-white px-4 pb-4 pt-4 text-gray-900">
+            <div class="text-[12px] font-semibold tracking-[0.18em] text-gray-900">選手登録設定</div>
             <div class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-              <div class="rounded-2xl bg-white/6 px-4 py-3">
-                <div class="text-[11px] tracking-[0.14em] text-white/56">支配下登録選手</div>
+              <div class="bg-white px-4 py-0">
+                <div class="text-[11px] tracking-[0.14em] text-gray-500">支配下登録選手</div>
                 <div class="mt-1 flex items-center justify-between gap-3">
-                  <div class="text-lg font-black ${countTone(registeredCount, 70)}">${registeredCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 70</span></div>
+                  <div class="text-[1.65rem] font-black leading-none ${countTone(registeredCount, 70)}">${registeredCount}<span class="ml-1 text-base font-semibold text-gray-400">/ 70</span></div>
                   ${renderBreakdown(registeredBreakdown)}
                 </div>
               </div>
-              <div class="rounded-2xl bg-white/6 px-4 py-3">
-                <div class="text-[11px] tracking-[0.14em] text-white/56">出場選手登録</div>
+              <div class="bg-white px-4 py-0">
+                <div class="text-[11px] tracking-[0.14em] text-gray-500">出場選手登録</div>
                 <div class="mt-1 flex items-center justify-between gap-3">
-                  <div class="text-lg font-black ${countTone(activeCount, 31)}">${activeCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 31</span></div>
+                  <div class="text-[1.65rem] font-black leading-none ${countTone(activeCount, 31)}">${activeCount}<span class="ml-1 text-base font-semibold text-gray-400">/ 31</span></div>
                   ${renderBreakdown(activeBreakdown)}
                 </div>
               </div>
-              <div class="rounded-2xl bg-white/6 px-4 py-3">
-                <div class="text-[11px] tracking-[0.14em] text-white/56">ベンチ入り</div>
+              <div class="bg-white px-4 py-0">
+                <div class="text-[11px] tracking-[0.14em] text-gray-500">ベンチ入り</div>
                 <div class="mt-1 flex items-center justify-between gap-3">
-                  <div class="text-lg font-black ${countTone(benchCount, 26)}">${benchCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 26</span></div>
+                  <div class="text-[1.65rem] font-black leading-none ${countTone(benchCount, 26)}">${benchCount}<span class="ml-1 text-base font-semibold text-gray-400">/ 26</span></div>
                   ${renderBreakdown(benchBreakdown)}
                 </div>
               </div>
@@ -851,13 +859,13 @@
 
         <div class="mx-auto max-w-5xl space-y-5 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-5">
           ${groupedPlayers.map(group => `
-            <section class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+            <section class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
               <h2 class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">${group.position}</h2>
               <div class="space-y-3">
                 ${group.players.map(player => {
                   const assignment = getPlayerAssignment(player.no);
                   return `
-                    <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                    <div class="bg-gray-50 px-4 py-4">
                       <div class="flex items-center gap-3">
                         <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
                           <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
@@ -865,7 +873,7 @@
                         </button>
                         <div class="ml-auto flex shrink-0 items-center justify-end gap-2">
                           <button type="button" onclick="cyclePlayerRosterStatus('${player.no}')" class="w-16 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.rosterStatus === '支配下' ? 'bg-[#b00c15] text-white' : 'bg-[#132B4D] text-white'}">${assignment.rosterStatus}</button>
-                          <button type="button" onclick="cyclePlayerSquad('${player.no}')" class="w-14 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.squad === '1軍' ? 'bg-[#b00c15] text-white' : 'bg-[#132B4D] text-white'}">${assignment.squad}</button>
+                          <button type="button" onclick="cyclePlayerSquad('${player.no}')" class="w-14 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.squad === '1軍' ? 'bg-[#b00c15] text-white' : 'bg-[#132B4D] text-white'}">${rosterFilterLabels[assignment.squad] || assignment.squad}</button>
                           ${assignment.rosterStatus === '支配下' && assignment.squad === '1軍' ? `
                             <button type="button" onclick="togglePlayerBench('${player.no}')" class="w-20 rounded-full px-0 py-1.5 text-center text-xs font-semibold ${assignment.bench ? 'bg-[#b00c15] text-white' : 'bg-[#132B4D] text-white'}">${assignment.bench ? 'ベンチ入' : 'ベンチ外'}</button>
                           ` : '<div class="w-20"></div>'}
@@ -1006,13 +1014,13 @@
             <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
             <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
             <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
-              <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">‹</button>
+              <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white transition hover:text-white active:scale-95">‹</button>
               <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
-              <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">›</button>
+              <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white transition hover:text-white active:scale-95">›</button>
             </div>
           </div>
-          <div class="bg-[#132B4D] px-4 pb-4 pt-4 text-white">
-            <div class="text-[12px] font-semibold tracking-[0.18em] text-white/72">メンバー</div>
+          <div class="border-b border-[#132B4D] bg-white px-4 pb-4 pt-4 text-gray-900">
+            <div class="text-[12px] font-semibold tracking-[0.18em] text-gray-900">メンバー</div>
             <div class="mt-3 grid grid-cols-4 gap-1.5">
               ${gamePages.map((page, index) => `
                 <button
@@ -1021,7 +1029,7 @@
                   class="rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
                     index === state.gameViewIndex
                       ? 'bg-[#b00c15] text-white'
-                      : 'bg-white/8 text-white'
+                      : 'bg-[#132B4D] text-white'
                   }"
                 >
                   ${page.title}
@@ -1034,11 +1042,11 @@
         <div class="mx-auto max-w-5xl px-4 pb-[calc(env(safe-area-inset-bottom)+32px)] pt-5">
           ${currentPage.key === 'active' ? `
             <section class="space-y-4">
-              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <div class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">打順</div>
                 <div class="space-y-3">
                         ${battingOrderSlots.map(slot => `
-                          <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                          <div class="bg-gray-50 px-4 py-4">
                             <div class="flex items-center gap-3">
                         <div class="w-7 shrink-0 text-sm font-black text-gray-400">${slot.order}</div>
                               ${slot.player ? renderGamePlayerCard(slot.player, 'active-lineup') : `
@@ -1050,9 +1058,9 @@
                   `).join('')}
                 </div>
               </div>
-              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <div class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">投手</div>
-                    <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                    <div class="bg-gray-50 px-4 py-4">
                       <div class="flex items-center gap-3">
                         ${activePitcher ? renderGamePlayerCard(activePitcher, 'active-pitcher') : `
                           <button type="button" onclick="openBenchPitchersForSlot()" class="min-w-0 flex-1 text-left text-sm font-semibold text-gray-300">未設定</button>
@@ -1064,7 +1072,7 @@
               </div>
             </section>
           ` : currentPage.key === 'benchFielders' ? `
-            <section class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+            <section class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
               <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">控え野手</div>
               <div class="space-y-4">
                 ${benchFieldersByPosition.map(group => `
@@ -1075,12 +1083,12 @@
                     </div>
                     <div class="space-y-3">
                       ${group.players.length ? group.players.map(player => `
-                        <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                        <div class="bg-gray-50 px-4 py-4">
                           <div class="flex items-center gap-3">
                             ${renderGamePlayerCard(player, 'bench-fielder')}
                           </div>
                         </div>
-                      `).join('') : '<div class="rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-300">該当選手なし</div>'}
+                      `).join('') : '<div class="bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-300">該当選手なし</div>'}
                     </div>
                   </div>
                 `).join('')}
@@ -1088,22 +1096,22 @@
             </section>
           ` : currentPage.key === 'retired' ? `
             <section class="space-y-4">
-              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <div class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="mb-4 flex items-center justify-between gap-3">
                   <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">交代</h2>
                   <div class="text-sm font-black text-gray-400">${retiredPlayers.length}</div>
                 </div>
                 <div class="space-y-3">
                   ${retiredPlayers.length ? retiredPlayers.map(player => `
-                    <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                    <div class="bg-gray-50 px-4 py-4">
                       <div class="flex items-center gap-3">
                         ${renderGamePlayerCard(player, 'retired')}
                       </div>
                     </div>
-                  `).join('') : '<div class="rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
+                  `).join('') : '<div class="bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
                 </div>
               </div>
-              <div class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+              <div class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="flex items-center justify-between gap-3">
                   <div class="text-sm font-black tracking-[0.16em] text-gray-400">GAME SETTINGS</div>
                   <button type="button" onclick="openClearLineupConfirm()" class="rounded-full bg-gray-200 px-4 py-2 text-xs font-semibold text-gray-700">メンバー表をクリア</button>
@@ -1111,19 +1119,19 @@
               </div>
             </section>
           ` : `
-            <section class="rounded-[28px] border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
+            <section class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
               <div class="mb-4 flex items-center justify-between gap-3">
                 <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">控え投手</h2>
                 <div class="text-sm font-black text-gray-400">${benchPitchers.length}</div>
               </div>
               <div class="space-y-3">
                 ${benchPitchers.length ? benchPitchers.map(player => `
-                  <div class="rounded-2xl bg-gray-50 px-4 py-4">
+                  <div class="bg-gray-50 px-4 py-4">
                     <div class="flex items-center gap-3">
                       ${renderGamePlayerCard(player, 'bench-pitcher')}
                     </div>
                   </div>
-                `).join('') : '<div class="rounded-2xl bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
+                `).join('') : '<div class="bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
               </div>
             </section>
           `}
@@ -1232,10 +1240,17 @@
 
     // --- 4. レンダリング関数 ---
     function renderFilters() {
+      const filterButtonTone = (active) => active
+        ? 'bg-[#b00c15] text-white shadow-[0_8px_18px_rgba(108,6,16,0.24)]'
+        : 'bg-[#132B4D] text-white hover:bg-[#19385f]';
+      const secondaryFilterTone = (active) => active
+        ? 'border-[#d9dee8] bg-white text-[#132B4D]'
+        : 'border-[#d9dee8] bg-white text-[#132B4D] hover:bg-gray-50';
+
       const rosterButton = `
         <button
           onclick="toggleRosterFilter()"
-          class="min-w-0 rounded-xl border border-[#28466F] bg-transparent px-0 py-2 text-[11px] font-semibold tracking-tight text-white transition-colors hover:bg-white/6"
+          class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${secondaryFilterTone(true)}"
         >
           ${rosterFilterLabels[state.rosterFilter] || state.rosterFilter}
         </button>
@@ -1244,11 +1259,7 @@
       const positionButtons = positionFilters.map(filter => `
         <button
           onclick="setPositionFilter('${filter}')"
-          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-            state.activePositionFilter === filter
-              ? 'bg-[#b00c15] text-white shadow-[0_8px_18px_rgba(108,6,16,0.24)]'
-              : 'bg-white/6 text-white hover:bg-white/10'
-          }"
+          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${filterButtonTone(state.activePositionFilter === filter)}"
         >
           ${filter}
         </button>
@@ -1257,11 +1268,7 @@
       const throwButton = `
         <button
           onclick="cycleThrowFilter()"
-          class="min-w-0 rounded-xl border border-[#28466F] px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-            state.activeThrowFilter
-              ? 'bg-transparent text-white'
-              : 'bg-white/6 text-white hover:bg-white/10'
-          }"
+          class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${secondaryFilterTone(Boolean(state.activeThrowFilter))}"
         >
           ${state.activeThrowFilter || '右投・左投'}
         </button>
@@ -1270,11 +1277,7 @@
       const batButton = `
         <button
           onclick="cycleBatFilter()"
-          class="min-w-0 rounded-xl border border-[#28466F] px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
-            state.activeBatFilter
-              ? 'bg-transparent text-white'
-              : 'bg-white/6 text-white hover:bg-white/10'
-          }"
+          class="min-w-0 rounded-xl border px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${secondaryFilterTone(Boolean(state.activeBatFilter))}"
         >
           ${state.activeBatFilter || '右打・左打'}
         </button>
@@ -1564,15 +1567,15 @@
       playerListContainer.innerHTML = filtered.map(p => `
         <div 
           onclick="openDetail('${p.no}')"
-          class="group relative overflow-hidden bg-[#b00c15] px-4 py-4 transition-transform active:scale-[0.992] cursor-pointer"
+          class="group relative overflow-hidden bg-white px-4 py-4 transition-transform active:scale-[0.992] cursor-pointer"
         >
           <button
             type="button"
             onclick="cycleSortMode(event)"
-            class="absolute right-4 top-1/2 z-20 min-w-[3.6rem] -translate-y-1/2 text-right text-[3.9rem] font-black italic leading-none tracking-[-0.08em] text-white"
+            class="absolute right-4 top-1/2 z-20 min-w-[3.6rem] -translate-y-1/2 text-right text-[3.9rem] font-black italic leading-none tracking-[-0.08em] text-[#b00c15]"
             aria-label="並び替えを変更"
           >${p.no}</button>
-          <div class="absolute -right-5 -bottom-9 text-[9.5rem] font-black italic opacity-[0.09] pointer-events-none text-white">
+          <div class="absolute -right-5 -bottom-9 text-[9.5rem] font-black italic opacity-[0.04] pointer-events-none text-[#132B4D]">
             ${p.no}
           </div>
           <div class="relative z-10 flex items-center gap-3.5 pr-16">
@@ -1581,18 +1584,18 @@
                 src="${p.photoUrl || ''}"
                 alt="${p.name}"
                 loading="lazy"
-                class="h-[92px] w-[72px] object-cover object-top bg-white/18 shadow-[0_10px_24px_rgba(15,23,42,0.16)]"
+                class="h-[92px] w-[72px] object-cover object-top bg-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.16)]"
                 onerror="this.style.visibility='hidden'; this.style.width='0'; this.style.margin='0';"
               >
             </div>
             <div class="flex-1 min-w-0 pt-1">
-              <div class="mb-2 text-[12px] font-bold tracking-[0.08em] text-white">
+              <div class="mb-2 text-[12px] font-bold tracking-[0.08em] text-gray-500">
                 ${getDisplayChips(p).join('　')}
               </div>
               <div class="min-w-0">
-                <h2 class="truncate text-[1.65rem] font-black tracking-[-0.045em] leading-[1.04] text-white">${p.name}</h2>
+                <h2 class="truncate text-[1.65rem] font-black tracking-[-0.045em] leading-[1.04] text-gray-950">${p.name}</h2>
               </div>
-              <p class="mt-2 truncate text-[13px] font-semibold tracking-[0.01em] text-white">
+              <p class="mt-2 truncate text-[13px] font-semibold tracking-[0.01em] text-gray-500">
                 ${[p.draftLabel || null, p.age !== null ? `${p.age}歳` : null, p.birthplace].filter(Boolean).join('  ')}
               </p>
             </div>
@@ -1722,32 +1725,34 @@
             </div>
           </div>
 
-          <div class="bg-[#132B4D] px-5 pb-4 pt-4 text-white">
+          <div class="relative overflow-hidden bg-white px-5 pb-4 pt-4">
             <div class="relative">
-              <div class="absolute right-1 top-1 text-[2.5rem] font-black italic leading-[0.9] tracking-[-0.06em] text-white/95">${p.no}</div>
+              <div class="absolute -right-4 -bottom-8 text-[8.8rem] font-black italic leading-none tracking-[-0.08em] text-[#132B4D] opacity-[0.04] pointer-events-none">${p.no}</div>
+              <div class="absolute right-1 top-1 text-[3.9rem] font-black italic leading-none tracking-[-0.08em] text-[#b00c15]">${p.no}</div>
               <div class="flex min-w-0 items-start gap-4 pr-16">
                 <div class="shrink-0 pt-0.5">
                   <img
                     src="${p.photoUrl || ''}"
                     alt="${p.name}"
-                    class="h-[96px] w-[74px] object-cover object-top bg-white/10 shadow-[0_12px_24px_rgba(2,6,23,0.16)] ring-1 ring-white/8"
+                    class="h-[92px] w-[72px] object-cover object-top bg-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.16)]"
                     onerror="this.style.display='none';"
                   >
                 </div>
                 <div class="min-w-0 flex-1 max-w-[72%] pt-0.5">
-                <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-white/76">
-                  <div class="tracking-[0.22em]">${p.displayRole}</div>
-                  <div class="tracking-[0.08em]">${p.throw_bat}</div>
+                <div class="mb-2 text-[12px] font-bold tracking-[0.08em] text-gray-500">
+                  ${[p.displayRole, p.throw_bat].filter(Boolean).join('　')}
                 </div>
-                <h1 class="text-[1.78rem] font-black tracking-[-0.05em] leading-[1.02] text-white">${p.name}</h1>
-                ${p.nameKana ? `<div class="mt-1.5 text-[11px] font-semibold tracking-[0.18em] text-white/72">${p.nameKana}</div>` : ''}
+                <div class="min-w-0">
+                <h1 class="text-[1.65rem] font-black tracking-[-0.045em] leading-[1.04] text-gray-950">${p.name}</h1>
+                </div>
+                ${p.nameKana ? `<div class="mt-2 text-[13px] font-semibold tracking-[0.01em] text-gray-500">${p.nameKana}</div>` : ''}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-[#b00c15] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
+        <button onclick="closeDetail()" aria-label="閉じる" class="fixed left-1/2 bottom-[calc(env(safe-area-inset-bottom)+20px)] z-[65] flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#b00c15] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
 
         <div class="pt-0.5">
           <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-3">
@@ -2027,7 +2032,7 @@
 
     window.cyclePlayerSquad = (playerNo) => {
       const current = getPlayerAssignment(playerNo);
-      const order = current.rosterStatus === '支配下' ? ['1軍', '2軍', '3軍'] : ['2軍', '3軍'];
+      const order = current.rosterStatus === '支配下' ? ['2軍', '1軍', '3軍'] : ['2軍', '3軍'];
       const nextIndex = (order.indexOf(current.squad) + 1) % order.length;
       window.setPlayerSquad(playerNo, order[nextIndex]);
     };
