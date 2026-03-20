@@ -44,11 +44,9 @@
         <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
         <div class="absolute inset-x-0 bottom-0 h-px bg-white/18"></div>
         <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
-          <div class="h-11 w-11"></div>
-          <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
-            <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
-          </button>
-          <div class="h-11 w-11"></div>
+          <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">‹</button>
+          <img src="./carp-logo.svg" alt="CARP PLAYERS" class="h-10 w-auto max-w-[220px]">
+          <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">›</button>
         </div>
       </div>
 
@@ -768,11 +766,9 @@
             <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
             <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
             <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
-              <div class="h-11 w-11"></div>
-              <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
-                <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
-              </button>
-              <div class="h-11 w-11"></div>
+              <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">‹</button>
+              <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
+              <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">›</button>
             </div>
           </div>
           <div class="bg-[#132B4D] px-4 pb-4 pt-4 text-white">
@@ -984,11 +980,9 @@
             <div class="absolute inset-y-0 left-0 w-16 bg-white/6 [clip-path:polygon(0_0,100%_0,72%_100%,0_100%)]"></div>
             <div class="absolute inset-y-0 right-0 w-16 bg-black/8 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
             <div class="relative flex items-center justify-between px-4 pb-5 pt-4">
-              <div class="h-11 w-11"></div>
-              <button type="button" onclick="cycleTopScreen()" aria-label="画面を切り替える" class="transition active:scale-[0.98]">
-                <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
-              </button>
-              <div class="h-11 w-11"></div>
+              <button type="button" onclick="showPrevTopScreen()" aria-label="前の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">‹</button>
+              <img src="./carp-logo.svg" alt="" class="h-10 w-auto max-w-[220px]">
+              <button type="button" onclick="showNextTopScreen()" aria-label="次の画面へ" class="flex h-11 w-11 items-center justify-center rounded-full text-[1.55rem] font-light leading-none text-white/38 transition hover:text-white/54 active:scale-95 active:text-white/72">›</button>
             </div>
           </div>
           <div class="bg-[#132B4D] px-4 pb-4 pt-4 text-white">
@@ -1478,9 +1472,9 @@
       const clickAttrs = options.onClick ? ` onclick="${options.onClick}(event)"` : '';
       const extraClass = options.onClick ? ' cursor-pointer transition active:scale-[0.995]' : '';
       return `
-        <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]${extraClass}"${clickAttrs}>
+        <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]${extraClass}"${clickAttrs}>
           <div class="mb-4 flex items-center justify-between gap-3">
-            <h3 class="text-sm font-bold tracking-wider text-gray-400">${title}</h3>
+            <h3 class="text-[13px] font-black tracking-[0.16em] text-gray-400">${title}</h3>
             ${toggleHint}
           </div>
           <div class="-mx-1 overflow-x-auto">
@@ -1492,9 +1486,9 @@
               </thead>
               <tbody>
                 ${rows.map((row, rowIndex) => `
-                  <tr class="${rowIndex === 0 ? 'bg-gray-100' : 'bg-gray-50'}">
+                  <tr class="${rowIndex === 0 ? 'bg-gray-100/95' : 'bg-gray-50'}">
                     ${row.map((cell, index) => `
-                      <td class="px-2 py-2 text-sm ${index === 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}">${cell}</td>
+                      <td class="px-2 py-2.5 text-[13px] ${index === 0 ? 'font-black text-gray-900' : 'font-semibold text-gray-700'}">${cell}</td>
                     `).join('')}
                   </tr>
                 `).join('')}
@@ -1544,48 +1538,47 @@
       playerListContainer.innerHTML = filtered.map(p => `
         <div 
           onclick="openDetail('${p.no}')"
-          class="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm active:scale-95 transition-transform cursor-pointer border border-gray-100"
+          class="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white px-4 py-4 shadow-[0_18px_48px_rgba(15,23,42,0.09)] transition-transform active:scale-[0.992] cursor-pointer"
         >
-          <div class="absolute -right-4 -bottom-6 text-9xl font-black italic opacity-[0.03] pointer-events-none text-[#132B4D]">
+          <div class="absolute -right-3 -bottom-7 text-[7.6rem] font-black italic opacity-[0.035] pointer-events-none text-[#132B4D]">
             ${p.no}
           </div>
-          <div class="relative z-10 flex items-start gap-4">
-            <div class="shrink-0">
+          <div class="relative z-10 flex items-start gap-3.5">
+            <div class="shrink-0 pt-0.5">
               <img
                 src="${p.photoUrl || ''}"
                 alt="${p.name}"
                 loading="lazy"
-                class="h-[88px] w-[70px] rounded-[18px] object-cover object-top bg-gray-100"
+                class="h-[92px] w-[72px] rounded-[22px] object-cover object-top bg-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.1)]"
                 onerror="this.style.visibility='hidden'; this.style.width='0'; this.style.margin='0';"
               >
             </div>
-            <div class="flex-1 min-w-0 pr-2">
-              <div class="mb-2 flex flex-wrap gap-1.5">
+            <div class="flex-1 min-w-0 pt-1">
+              <div class="mb-2.5 flex flex-wrap gap-1.5">
                 ${getDisplayChips(p).map(chip => `
-                  <span class="rounded-full px-2.5 py-1 text-[11px] font-bold leading-none ${
+                  <span class="rounded-full px-2.5 py-1 text-[10px] font-black leading-none tracking-[0.06em] ${
                     chip === p.pos
-                      ? 'bg-red-50 text-[#C80815]'
+                      ? 'bg-[#C80815]/8 text-[#C80815]'
                       : chip === '育成'
                         ? 'bg-gray-200 text-gray-600'
-                        : 'bg-[#132B4D]/6 text-[#132B4D]/72'
+                        : 'bg-[#132B4D]/6 text-[#132B4D]/70'
                   }">
                     ${chip}
                   </span>
                 `).join('')}
               </div>
-              <div class="mt-1 flex items-end gap-2 min-w-0">
-                <h2 class="truncate text-xl font-bold tracking-tight text-gray-900">${p.name}</h2>
-                ${p.nameKana ? `<span class="hidden shrink-0 text-[11px] font-medium tracking-wide text-gray-400 min-[390px]:inline-block">${p.nameKana}</span>` : ''}
+              <div class="min-w-0">
+                <h2 class="truncate text-[1.65rem] font-black tracking-[-0.045em] leading-[1.04] text-gray-950">${p.name}</h2>
               </div>
-              <p class="mt-1 text-sm text-gray-500 truncate">
+              <p class="mt-2 truncate text-[13px] font-semibold tracking-[0.01em] text-gray-500">
                 ${[p.draftLabel || null, p.age !== null ? `${p.age}歳` : null, p.birthplace].filter(Boolean).join('  ')}
               </p>
             </div>
-            <div class="shrink-0 pt-1">
+            <div class="shrink-0 self-start pt-1">
               <button
                 type="button"
                 onclick="cycleSortMode(event)"
-                class="text-3xl font-black text-[#C80815]"
+                class="min-w-[2.3rem] text-right text-[2.1rem] font-black italic leading-none tracking-[-0.05em] text-[#C80815]"
                 aria-label="並び替えを変更"
               >${p.no}</button>
             </div>
@@ -1693,9 +1686,9 @@
 
       if (latestStats?.fieldingSummary) {
         statBlocks.push(`
-          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 class="text-sm font-bold text-gray-400 mb-3 tracking-wider">${latestYear || '2025'} FIELDING</h3>
-            <div class="text-sm font-medium text-gray-900">${latestStats.fieldingSummary}</div>
+          <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+            <h3 class="mb-3 text-[13px] font-black tracking-[0.16em] text-gray-400">守備成績</h3>
+            <div class="text-sm font-medium leading-7 text-gray-900">${latestStats.fieldingSummary}</div>
           </div>
         `);
       }
@@ -1715,27 +1708,27 @@
             </div>
           </div>
 
-          <div class="bg-[#132B4D] px-5 pb-5 pt-4 text-white">
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex min-w-0 flex-1 items-start gap-3.5">
+          <div class="bg-[#132B4D] px-5 pb-6 pt-4 text-white">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex min-w-0 flex-1 items-start gap-4">
                 <div class="shrink-0 pt-1">
                   <img
                     src="${p.photoUrl || ''}"
                     alt="${p.name}"
-                    class="h-[108px] w-[84px] rounded-[20px] object-cover object-top bg-white/10 shadow-[0_10px_24px_rgba(2,6,23,0.14)]"
+                    class="h-[112px] w-[86px] rounded-[24px] object-cover object-top bg-white/10 shadow-[0_16px_30px_rgba(2,6,23,0.18)] ring-1 ring-white/8"
                     onerror="this.style.display='none';"
                   >
                 </div>
                 <div class="min-w-0 flex-1 max-w-[70%] pt-1">
-                <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold text-white/80">
+                <div class="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-white/76">
                   <div class="tracking-[0.22em]">${p.displayRole}</div>
                   <div class="tracking-[0.08em]">${p.throw_bat}</div>
                 </div>
-                <h1 class="text-[1.9rem] font-black tracking-[-0.04em] leading-[1.04] text-white">${p.name}</h1>
-                ${p.nameKana ? `<div class="mt-2 hidden text-[12px] font-semibold tracking-[0.2em] text-white/76 min-[390px]:block">${p.nameKana}</div>` : ''}
+                <h1 class="text-[1.82rem] font-black tracking-[-0.05em] leading-[1.03] text-white">${p.name}</h1>
+                ${p.nameKana ? `<div class="mt-2 text-[11px] font-semibold tracking-[0.18em] text-white/72">${p.nameKana}</div>` : ''}
                 </div>
               </div>
-              <div class="shrink-0 pt-2 pr-1 text-[3.45rem] font-black italic leading-[0.9] tracking-[-0.05em] text-white">${p.no}</div>
+              <div class="shrink-0 pt-3 pr-1 text-[3.05rem] font-black italic leading-[0.9] tracking-[-0.06em] text-white/96">${p.no}</div>
             </div>
           </div>
         </div>
@@ -1743,9 +1736,9 @@
         <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-[#C80815] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
 
         <div class="pt-2">
-          <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-6">
-            <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-              <h3 class="mb-4 text-sm font-bold tracking-wider text-gray-400">プロフィール</h3>
+          <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-5">
+            <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+              <h3 class="mb-4 text-[13px] font-black tracking-[0.16em] text-gray-400">プロフィール</h3>
               <div class="grid grid-cols-[1.28fr_0.78fr_0.78fr_1.52fr] gap-2">
                 ${createCompactDetailCell('生年月日', p.birth)}
                 ${createCompactDetailCell('身長', `${p.height} cm`)}
@@ -1779,9 +1772,9 @@
 
     function createDetailRow(label, value) {
       return `
-        <div class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
-          <div class="text-[11px] font-bold tracking-[0.16em] text-gray-400">${label}</div>
-          <div class="mt-1 text-sm font-medium leading-6 text-gray-900">${value}</div>
+        <div class="border-b border-gray-100 pb-3.5 last:border-b-0 last:pb-0">
+          <div class="text-[10px] font-black tracking-[0.16em] text-gray-400">${label}</div>
+          <div class="mt-1.5 text-[14px] font-medium leading-6 text-gray-900">${value}</div>
         </div>
       `;
     }
@@ -1789,8 +1782,8 @@
     function createCompactDetailCell(label, value) {
       return `
         <div class="px-1 py-1">
-          <div class="text-[10px] font-bold tracking-[0.14em] text-gray-400">${label}</div>
-          <div class="mt-1 whitespace-nowrap text-sm font-semibold leading-5 text-gray-900">${value}</div>
+          <div class="text-[10px] font-black tracking-[0.14em] text-gray-400">${label}</div>
+          <div class="mt-1 whitespace-nowrap text-[14px] font-semibold leading-5 text-gray-900">${value}</div>
         </div>
       `;
     }
@@ -1941,16 +1934,45 @@
       renderGameModal();
     };
 
+    function getTopScreenIndex() {
+      if (state.settingsOpen) return 1;
+      if (state.gameOpen) return 2;
+      return 0;
+    }
+
+    function openTopScreen(index) {
+      const normalizedIndex = ((index % 3) + 3) % 3;
+      if (normalizedIndex === 0) {
+        state.settingsOpen = false;
+        state.gameOpen = false;
+        state.pendingGameSlot = null;
+        state.pendingGameEntry = null;
+        state.pendingPositionChange = null;
+        state.pendingOutPlayerNo = null;
+        state.pendingClearLineup = false;
+        renderSettingsModal();
+        renderGameModal();
+        renderSearchDock();
+        updateBodyScroll();
+        return;
+      }
+      if (normalizedIndex === 1) {
+        window.openSettings();
+        return;
+      }
+      window.openGame();
+    }
+
     window.cycleTopScreen = () => {
-      if (state.settingsOpen) {
-        window.openGame();
-        return;
-      }
-      if (state.gameOpen) {
-        window.closeGame();
-        return;
-      }
-      window.openSettings();
+      openTopScreen(getTopScreenIndex() + 1);
+    };
+
+    window.showPrevTopScreen = () => {
+      openTopScreen(getTopScreenIndex() - 1);
+    };
+
+    window.showNextTopScreen = () => {
+      openTopScreen(getTopScreenIndex() + 1);
     };
 
     window.setPlayerRosterStatus = (playerNo, rosterStatus) => {
@@ -2296,6 +2318,41 @@
       renderSearchStage();
       updateBodyScroll();
     };
+
+    let swipeStartX = null;
+    let swipeStartY = null;
+
+    document.addEventListener('touchstart', (event) => {
+      if (event.touches.length !== 1) return;
+      if (state.selectedPlayer || state.searchOpen || state.activeStatInfo || state.pendingGameEntry || state.pendingPositionChange || state.pendingOutPlayerNo || state.pendingClearLineup) return;
+      swipeStartX = event.touches[0].clientX;
+      swipeStartY = event.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (event) => {
+      if (swipeStartX === null || swipeStartY === null) return;
+      if (state.selectedPlayer || state.searchOpen || state.activeStatInfo || state.pendingGameEntry || state.pendingPositionChange || state.pendingOutPlayerNo || state.pendingClearLineup) {
+        swipeStartX = null;
+        swipeStartY = null;
+        return;
+      }
+      const touch = event.changedTouches?.[0];
+      if (!touch) {
+        swipeStartX = null;
+        swipeStartY = null;
+        return;
+      }
+      const deltaX = touch.clientX - swipeStartX;
+      const deltaY = touch.clientY - swipeStartY;
+      swipeStartX = null;
+      swipeStartY = null;
+      if (Math.abs(deltaX) < 56 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+      if (deltaX < 0) {
+        openTopScreen(getTopScreenIndex() + 1);
+        return;
+      }
+      openTopScreen(getTopScreenIndex() - 1);
+    }, { passive: true });
 
     // --- 6. 初期化 ---
     renderSearchDock();
