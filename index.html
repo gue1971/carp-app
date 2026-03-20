@@ -9,6 +9,7 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="./players-data.js"></script>
+  <script src="./npb-data.js"></script>
 
   <!-- Tailwind Custom Config -->
   <script>
@@ -126,6 +127,47 @@
     function formatDraftLabel(draft) {
       if (!draft || draft === '-') return null;
       return String(draft).replace(/ドラフト/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function normalizeHistoryForCompare(value) {
+      return String(value || '')
+        .normalize('NFKC')
+        .replace(/[ 　]/g, '')
+        .replace(/[‐‑‒–—―ー－]/g, '-')
+        .replace(/[()（）]/g, '')
+        .replace(/・/g, '')
+        .replace(/高校/g, '高')
+        .replace(/商業高/g, '商高')
+        .replace(/日本大/g, '日大')
+        .replace(/大学/g, '大')
+        .replace(/埼玉西武ライオンズ|西武ライオンズ/g, '埼玉西武')
+        .replace(/シンシナティ・レッズ|シンシナティレッズ/g, 'シンシナティ')
+        .replace(/\s+/g, '')
+        .trim();
+    }
+
+    function resolveHistoryFields(clubHistory, npbHistory) {
+      const club = clubHistory && clubHistory !== '-' ? String(clubHistory).trim() : null;
+      const npb = npbHistory && npbHistory !== '-' ? String(npbHistory).trim() : null;
+      const normalizedClub = normalizeHistoryForCompare(club);
+      const normalizedNpb = normalizeHistoryForCompare(npb);
+
+      if (npb && club) {
+        if (normalizedClub === normalizedNpb) {
+          return { canonical: npb, detail: null, club, npb };
+        }
+        if (normalizedClub.includes(normalizedNpb)) {
+          return { canonical: npb, detail: club, club, npb };
+        }
+        if (normalizedNpb.includes(normalizedClub)) {
+          return { canonical: npb, detail: null, club, npb };
+        }
+        return { canonical: npb, detail: club, club, npb };
+      }
+
+      if (npb) return { canonical: npb, detail: null, club: null, npb };
+      if (club) return { canonical: club, detail: null, club, npb: null };
+      return { canonical: '-', detail: null, club: null, npb: null };
     }
 
     function buildPlayerChips(player) {
@@ -374,42 +416,78 @@
       return chips;
     }
 
+    function mergeStats2025(baseStats = {}, overrideStats = {}) {
+      return {
+        batting: { ...(baseStats.batting || {}), ...(overrideStats.batting || {}) },
+        pitching: { ...(baseStats.pitching || {}), ...(overrideStats.pitching || {}) },
+        fieldingSummary: overrideStats.fieldingSummary ?? baseStats.fieldingSummary ?? null
+      };
+    }
+
+    function mergeStatsByYear(baseStatsByYear = {}, overrideStatsByYear = {}) {
+      const years = new Set([
+        ...Object.keys(baseStatsByYear || {}),
+        ...Object.keys(overrideStatsByYear || {})
+      ]);
+      return Object.fromEntries([...years].map(year => [
+        year,
+        mergeStats2025(baseStatsByYear?.[year], overrideStatsByYear?.[year])
+      ]));
+    }
+
     function normalizePlayer(player) {
-      const batting = player.stats2025?.batting ?? {};
-      const pitching = player.stats2025?.pitching ?? {};
-      const displayStatus = player.registration || player.status;
-      const { throwHand, batHand } = parseThrowBat(player.throw_bat);
+      const npbPlayer = window.npbData?.players?.[player.name] || {};
+      const npbId = player.npbId || npbPlayer.npbId || null;
+      const npbStats = (npbId && window.npbData?.stats2025?.[npbId]) || npbPlayer.stats2025 || null;
+      const npbStatsByYear = (npbId && window.npbData?.statsByYear?.[npbId]) || npbPlayer.statsByYear || {};
+      const mergedStats2025 = mergeStats2025(player.stats2025, npbStats || {});
+      const mergedStatsByYear = mergeStatsByYear(player.statsByYear, npbStatsByYear);
+      const batting = mergedStats2025.batting ?? {};
+      const pitching = mergedStats2025.pitching ?? {};
+      const historyFields = resolveHistoryFields(player.history, npbPlayer.history);
+      const displayStatus = npbPlayer.registration || player.registration || player.status;
+      const throwBat = npbPlayer.throw_bat || player.throw_bat;
+      const { throwHand, batHand } = parseThrowBat(throwBat);
       const displayRole = !displayStatus || displayStatus === player.pos || displayStatus.includes(player.pos)
         ? displayStatus || player.pos
         : `${displayStatus} • ${player.pos}`;
 
       return {
         ...player,
-        school: player.school || '-',
-        height: player.height ?? '-',
-        weight: player.weight ?? '-',
-        birth: player.birth || '-',
-        birthplace: player.birthplace || '-',
-        throw_bat: player.throw_bat || '-',
-        history: player.history || '-',
-        draft: player.draft || '-',
-        draftLabel: formatDraftLabel(player.draft),
-        debut: player.debut || '-',
-        age: calculateAge(player.birth),
-        chips: buildPlayerChips(player),
+        npbId,
+        npbUrl: npbId ? `https://npb.jp/bis/players/${npbId}.html` : null,
+        school: npbPlayer.school || player.school || '-',
+        height: npbPlayer.height ?? player.height ?? '-',
+        weight: npbPlayer.weight ?? player.weight ?? '-',
+        birth: npbPlayer.birth || player.birth || '-',
+        birthplace: npbPlayer.birthplace || player.birthplace || '-',
+        throw_bat: throwBat || '-',
+        history: historyFields.canonical,
+        historyCanonical: historyFields.canonical,
+        historyDetail: historyFields.detail,
+        historyClub: historyFields.club,
+        historyNpb: historyFields.npb,
+        draft: npbPlayer.draft || player.draft || '-',
+        draftLabel: formatDraftLabel(npbPlayer.draft || player.draft),
+        debut: npbPlayer.debut || player.debut || '-',
+        age: calculateAge(npbPlayer.birth || player.birth),
+        chips: buildPlayerChips({ ...player, throw_bat: throwBat }),
         throwHand,
         batHand,
         displayStatus,
         displayRole,
-        avg: formatAverage(player.avg),
-        era: formatNumber(player.era, 2),
-        stats2025: {
-          batting,
-          pitching,
-          fieldingSummary: player.stats2025?.fieldingSummary || null
-        },
+        avg: formatAverage(npbStats?.batting?.average ?? player.avg),
+        era: formatNumber(npbStats?.pitching?.era ?? player.era, 2),
+        stats2025: mergedStats2025,
+        statsByYear: mergedStatsByYear,
         hasBattingStats: hasAnyStat(batting),
-        hasPitchingStats: hasAnyStat(pitching)
+        hasPitchingStats: hasAnyStat(pitching),
+        sourceMeta: {
+          ...(player.sourceMeta || {}),
+          npbLinked: Boolean(npbId),
+          npbStatsImported: Boolean(npbStats),
+          npbStatsByYearImported: Object.keys(npbStatsByYear || {}).length > 0
+        }
       };
     }
 
@@ -434,7 +512,8 @@
       activeThrowFilter: null,
       activeBatFilter: null,
       sortMode: 'numberAsc',
-      selectedPlayer: null
+      selectedPlayer: null,
+      activeStatInfo: null
     };
 
     const positionFilters = ['全選手', '投手', '野手', '捕手', '内野手', '外野手'];
@@ -1036,6 +1115,204 @@
       return state.sortMode === 'ageDesc' ? result * -1 : result;
     }
 
+    function getAvailableDetailYears(player) {
+      return Object.keys(player?.statsByYear || {})
+        .filter(year => {
+          const yearStats = player.statsByYear?.[year];
+          return hasAnyStat(yearStats?.batting || {}) || hasAnyStat(yearStats?.pitching || {}) || Boolean(yearStats?.fieldingSummary);
+        })
+        .sort((a, b) => Number(b) - Number(a));
+    }
+
+    function getStatYears(player) {
+      return getAvailableDetailYears(player);
+    }
+
+    function inningsToOuts(value) {
+      if (value === null || value === undefined || value === '' || value === '-') return null;
+      const text = String(value);
+      const [wholePart, decimalPart = '0'] = text.split('.');
+      const whole = Number(wholePart);
+      const decimal = Number(decimalPart);
+      if (Number.isNaN(whole) || Number.isNaN(decimal)) return null;
+      return (whole * 3) + decimal;
+    }
+
+    function formatPercent(value, digits = 1) {
+      if (value === null || value === undefined || value === '' || Number.isNaN(Number(value))) return '-';
+      return `${(Number(value) * 100).toFixed(digits)}%`;
+    }
+
+    function formatInningsFromOuts(outs) {
+      if (outs === null || outs === undefined || Number.isNaN(Number(outs))) return '-';
+      const numericOuts = Number(outs);
+      const whole = Math.floor(numericOuts / 3);
+      const remainder = numericOuts % 3;
+      return remainder === 0 ? String(whole) : `${whole}.${remainder}`;
+    }
+
+    function calculateWhip(pitching = {}) {
+      const outs = inningsToOuts(pitching.inningsPitched);
+      if (!outs) return null;
+      const innings = outs / 3;
+      const baserunners = Number(pitching.hitsAllowed || 0) + Number(pitching.walks || 0);
+      return baserunners / innings;
+    }
+
+    function calculateKMinusBbRate(pitching = {}) {
+      const battersFaced = Number(pitching.battersFaced || 0);
+      if (!battersFaced) return null;
+      return (Number(pitching.strikeouts || 0) - Number(pitching.walks || 0)) / battersFaced;
+    }
+
+    function calculateOps(batting = {}) {
+      const obp = Number(batting.onBasePercentage);
+      const slg = Number(batting.sluggingPercentage);
+      if (Number.isNaN(obp) || Number.isNaN(slg)) return null;
+      return obp + slg;
+    }
+
+    function calculateRate(part, total) {
+      const denominator = Number(total || 0);
+      if (!denominator) return null;
+      return Number(part || 0) / denominator;
+    }
+
+    function calculateBattingAggregate(statsList) {
+      const totals = statsList.reduce((acc, stats) => {
+        if (!hasAnyStat(stats)) return acc;
+        acc.games += Number(stats.games || 0);
+        acc.plateAppearances += Number(stats.plateAppearances || 0);
+        acc.atBats += Number(stats.atBats || 0);
+        acc.hits += Number(stats.hits || 0);
+        acc.totalBases += Number(stats.totalBases || 0);
+        acc.walks += Number(stats.walks || 0);
+        acc.hitByPitch += Number(stats.hitByPitch || 0);
+        acc.sacrificeFlies += Number(stats.sacrificeFlies || 0);
+        acc.strikeouts += Number(stats.strikeouts || 0);
+        acc.homeRuns += Number(stats.homeRuns || 0);
+        return acc;
+      }, {
+        games: 0,
+        plateAppearances: 0,
+        atBats: 0,
+        hits: 0,
+        totalBases: 0,
+        walks: 0,
+        hitByPitch: 0,
+        sacrificeFlies: 0,
+        strikeouts: 0,
+        homeRuns: 0
+      });
+
+      if (!totals.plateAppearances && !totals.games) return null;
+
+      const obpDenominator = totals.atBats + totals.walks + totals.hitByPitch + totals.sacrificeFlies;
+      const obp = obpDenominator ? (totals.hits + totals.walks + totals.hitByPitch) / obpDenominator : null;
+      const slg = totals.atBats ? totals.totalBases / totals.atBats : null;
+      return {
+        ...totals,
+        onBasePercentage: obp,
+        sluggingPercentage: slg
+      };
+    }
+
+    function calculatePitchingAggregate(statsList) {
+      const totals = statsList.reduce((acc, stats) => {
+        if (!hasAnyStat(stats)) return acc;
+        acc.appearances += Number(stats.appearances || 0);
+        acc.outs += Number(inningsToOuts(stats.inningsPitched) || 0);
+        acc.hitsAllowed += Number(stats.hitsAllowed || 0);
+        acc.walks += Number(stats.walks || 0);
+        acc.strikeouts += Number(stats.strikeouts || 0);
+        acc.battersFaced += Number(stats.battersFaced || 0);
+        acc.earnedRuns += Number(stats.earnedRuns || 0);
+        return acc;
+      }, {
+        appearances: 0,
+        outs: 0,
+        hitsAllowed: 0,
+        walks: 0,
+        strikeouts: 0,
+        battersFaced: 0,
+        earnedRuns: 0
+      });
+
+      if (!totals.appearances && !totals.outs) return null;
+
+      return {
+        appearances: totals.appearances,
+        outs: totals.outs,
+        inningsPitched: formatInningsFromOuts(totals.outs),
+        hitsAllowed: totals.hitsAllowed,
+        walks: totals.walks,
+        strikeouts: totals.strikeouts,
+        battersFaced: totals.battersFaced,
+        earnedRuns: totals.earnedRuns,
+        era: totals.outs ? (totals.earnedRuns * 27) / totals.outs : null
+      };
+    }
+
+    const statInfoMap = {
+      'OPS': {
+        title: 'OPS',
+        body: '出塁率と長打率を足した指標です。打者の総合的な打撃力をざっくり捉えるためによく使われます。',
+        formula: 'OPS = 出塁率 + 長打率'
+      },
+      'WHIP': {
+        title: 'WHIP',
+        body: '1イニングあたり何人の走者を出したかを見る投手指標です。被安打と与四球を投球回で割って求めます。',
+        formula: 'WHIP = （被安打 + 与四球） ÷ 投球回'
+      },
+      'K-BB%': {
+        title: 'K-BB%',
+        body: '奪三振率から与四球率を引いた指標です。三振を取る力と四球を出さない力を同時に見られます。',
+        formula: 'K-BB% = （奪三振 - 与四球） ÷ 打者'
+      }
+    };
+
+    function createStatsHeaderCell(header) {
+      if (!statInfoMap[header]) {
+        return `<th class="px-2 text-[10px] font-bold tracking-[0.16em] text-gray-400">${header}</th>`;
+      }
+      return `
+        <th class="px-2 text-[10px] font-bold tracking-[0.16em] text-gray-400">
+          <button
+            type="button"
+            onclick="openStatInfo('${header}')"
+            class="rounded-full px-1.5 py-0.5 text-inherit underline decoration-dotted underline-offset-2"
+          >${header}</button>
+        </th>
+      `;
+    }
+
+    function createRecentStatsTable(title, headers, rows) {
+      if (!rows.length) return '';
+      return `
+        <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+          <h3 class="mb-4 text-sm font-bold tracking-wider text-gray-400">${title}</h3>
+          <div class="-mx-1 overflow-x-auto">
+            <table class="min-w-full border-separate border-spacing-y-2 text-left">
+              <thead>
+                <tr>
+                  ${headers.map(createStatsHeaderCell).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(row => `
+                  <tr class="bg-gray-50">
+                    ${row.map((cell, index) => `
+                      <td class="px-2 py-2 text-sm ${index === 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}">${cell}</td>
+                    `).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
     function renderPlayerList() {
       const q = state.searchQuery.toLowerCase();
       
@@ -1123,63 +1400,91 @@
       const p = state.selectedPlayer;
       if (!p) return;
 
-      const hasStats = p.era !== '-' || p.avg !== '-';
-      const batting = p.stats2025?.batting ?? {};
-      const pitching = p.stats2025?.pitching ?? {};
+      const statYears = getStatYears(p);
+      const latestYear = statYears[0];
+      const latestStats = (latestYear && p.statsByYear?.[latestYear]) || p.stats2025 || {};
       const statBlocks = [];
 
-      if (p.pos === '投手' && p.hasPitchingStats) {
-        statBlocks.push(
-          createStatsGrid('2025 PITCHING', [
-            ['登板', formatNumber(pitching.appearances)],
-            ['勝敗', `${formatNumber(pitching.wins)}-${formatNumber(pitching.losses)}`],
-            ['セーブ', formatNumber(pitching.saves)],
-            ['HLD/HP', `${formatNumber(pitching.holds)}/${formatNumber(pitching.holdPoints)}`],
-            ['投球回', formatNumber(pitching.inningsPitched, 1)],
-            ['奪三振', formatNumber(pitching.strikeouts)]
-          ])
-        );
+      if (p.pos === '投手') {
+        const yearlyPitchingStats = statYears
+          .map(year => p.statsByYear?.[year]?.pitching || {})
+          .filter(stats => hasAnyStat(stats));
+        const totalPitching = calculatePitchingAggregate(yearlyPitchingStats);
+        const rows = [
+          totalPitching ? [
+            '通算',
+            formatNumber(totalPitching.appearances),
+            formatInningsFromOuts(totalPitching.outs),
+            formatNumber(totalPitching.era, 2),
+            formatNumber(calculateWhip(totalPitching), 2),
+            formatPercent(calculateKMinusBbRate(totalPitching))
+          ] : null,
+          ...statYears.map(year => {
+            const pitching = p.statsByYear?.[year]?.pitching || {};
+            if (!hasAnyStat(pitching)) return null;
+            return [
+              year,
+              formatNumber(pitching.appearances),
+              formatNumber(pitching.inningsPitched, 1),
+              formatNumber(pitching.era, 2),
+              formatNumber(calculateWhip(pitching), 2),
+              formatPercent(calculateKMinusBbRate(pitching))
+            ];
+          })
+        ].filter(Boolean);
+
+        if (rows.length) {
+          statBlocks.push(
+          createRecentStatsTable('投手成績', ['年', '試合', '投球回', '防御率', 'WHIP', 'K-BB%'], rows)
+          );
+        }
+      } else {
+        const yearlyBattingStats = statYears
+          .map(year => p.statsByYear?.[year]?.batting || {})
+          .filter(stats => hasAnyStat(stats));
+        const totalBatting = calculateBattingAggregate(yearlyBattingStats);
+        const rows = [
+          totalBatting ? [
+            '通算',
+            formatNumber(totalBatting.games),
+            formatNumber(totalBatting.plateAppearances),
+            formatAverage(calculateOps(totalBatting)),
+            formatPercent(calculateRate(totalBatting.walks, totalBatting.plateAppearances)),
+            formatPercent(calculateRate(totalBatting.strikeouts, totalBatting.plateAppearances)),
+            formatNumber(totalBatting.homeRuns)
+          ] : null,
+          ...statYears.map(year => {
+            const batting = p.statsByYear?.[year]?.batting || {};
+            if (!hasAnyStat(batting)) return null;
+            return [
+              year,
+              formatNumber(batting.games),
+              formatNumber(batting.plateAppearances),
+              formatAverage(calculateOps(batting)),
+              formatPercent(calculateRate(batting.walks, batting.plateAppearances)),
+              formatPercent(calculateRate(batting.strikeouts, batting.plateAppearances)),
+              formatNumber(batting.homeRuns)
+            ];
+          })
+        ].filter(Boolean);
+
+        if (rows.length) {
+          statBlocks.push(
+          createRecentStatsTable('打撃成績', ['年', '試合', '打席', 'OPS', '四球率', '三振率', '本塁打'], rows)
+          );
+        }
       }
 
-      if (p.pos !== '投手' && p.hasBattingStats) {
-        statBlocks.push(
-          createStatsGrid('2025 BATTING', [
-            ['試合', formatNumber(batting.games)],
-            ['打席', formatNumber(batting.plateAppearances)],
-            ['打数', formatNumber(batting.atBats)],
-            ['安打', formatNumber(batting.hits)],
-            ['本塁打', formatNumber(batting.homeRuns)],
-            ['打点', formatNumber(batting.runsBattedIn)],
-            ['出塁率', formatAverage(batting.onBasePercentage)],
-            ['長打率', formatAverage(batting.sluggingPercentage)]
-          ])
-        );
-      }
-
-      if (p.stats2025?.fieldingSummary) {
+      if (latestStats?.fieldingSummary) {
         statBlocks.push(`
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 class="text-sm font-bold text-gray-400 mb-3 tracking-wider">2025 FIELDING</h3>
-            <div class="text-sm font-medium text-gray-900">${p.stats2025.fieldingSummary}</div>
+            <h3 class="text-sm font-bold text-gray-400 mb-3 tracking-wider">${latestYear || '2025'} FIELDING</h3>
+            <div class="text-sm font-medium text-gray-900">${latestStats.fieldingSummary}</div>
           </div>
         `);
       }
 
-      const statsHtml = hasStats ? `
-        <div class="rounded-[28px] border border-gray-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <h3 class="mb-4 text-sm font-bold tracking-wider text-gray-400">2025 SUMMARY</h3>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-2xl bg-gray-50 px-4 py-4 text-center">
-              <div class="mb-1 text-[11px] font-bold tracking-[0.18em] text-[#C80815]/72">2025 ${p.pos === '投手' ? '防御率' : '打率'}</div>
-              <div class="text-3xl font-black tracking-tight text-gray-900">${p.pos === '投手' ? p.era : p.avg}</div>
-            </div>
-            <div class="rounded-2xl bg-gray-50 px-4 py-4 text-center">
-              <div class="mb-1 text-[11px] font-bold tracking-[0.18em] text-[#C80815]/72">試合</div>
-              <div class="text-3xl font-black tracking-tight text-gray-900">${formatNumber(p.pos === '投手' ? pitching.appearances : batting.games)}</div>
-            </div>
-          </div>
-        </div>
-      ` : '';
+      const statInfo = state.activeStatInfo ? statInfoMap[state.activeStatInfo] : null;
 
       detailModal.innerHTML = `
         <div class="sticky top-0 z-30 shadow-sm">
@@ -1212,36 +1517,37 @@
         <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-[#C80815] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
 
         <div class="pt-2">
-          <div class="relative z-20 mx-auto max-w-2xl px-4">
-            ${statsHtml}
-          </div>
-
           <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-6">
-            <div class="rounded-[28px] border border-gray-100 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-              <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">PROFILE</h3>
-              <div class="space-y-4">
-                ${createDetailRow('生年月日', p.birth)}
-                ${createDetailRow('出身地', p.birthplace)}
-                <div class="flex gap-4">
-                  <div class="flex-1">${createDetailRow('身長', p.height + ' cm')}</div>
-                  <div class="flex-1">${createDetailRow('体重', p.weight + ' kg')}</div>
-                </div>
+            <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+              <h3 class="mb-4 text-sm font-bold tracking-wider text-gray-400">プロフィール</h3>
+              <div class="grid grid-cols-[1.28fr_0.78fr_0.78fr_1.52fr] gap-2">
+                ${createCompactDetailCell('生年月日', p.birth)}
+                ${createCompactDetailCell('身長', `${p.height} cm`)}
+                ${createCompactDetailCell('体重', `${p.weight} kg`)}
+                ${createCompactDetailCell('出身地', p.birthplace)}
               </div>
-            </div>
-
-            <div class="rounded-[28px] border border-gray-100 bg-white p-6 pb-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-              <h3 class="text-sm font-bold text-gray-400 mb-4 tracking-wider">CAREER</h3>
-              <div class="space-y-4">
-                ${createDetailRow('出身校・経歴', p.history)}
-                ${createDetailRow('出身校', p.school)}
+              <div class="mt-4 space-y-4">
+                ${createDetailRow('出身校・経歴', p.historyDetail || p.historyCanonical || p.history)}
                 ${createDetailRow('ドラフト', p.draft)}
-                ${createDetailRow('初出場', p.debut)}
               </div>
             </div>
 
             ${statBlocks.join('')}
           </div>
         </div>
+
+        ${statInfo ? `
+          <div class="fixed inset-0 z-[75] bg-[#132B4D]/48 px-6 py-10" onclick="closeStatInfo()">
+            <div class="mx-auto mt-24 max-w-sm rounded-[28px] bg-white p-6 shadow-[0_24px_60px_rgba(2,6,23,0.24)]" onclick="event.stopPropagation()">
+              <div class="text-lg font-black tracking-tight text-gray-900">${statInfo.title}</div>
+              <div class="mt-3 text-sm font-medium leading-6 text-gray-700">${statInfo.body}</div>
+              <div class="mt-4 rounded-2xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800">${statInfo.formula}</div>
+              <div class="mt-5 flex justify-center">
+                <button type="button" onclick="closeStatInfo()" class="rounded-full bg-[#C80815] px-5 py-2 text-sm font-semibold text-white">閉じる</button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
       `;
     }
 
@@ -1250,6 +1556,15 @@
         <div class="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
           <div class="text-[11px] font-bold tracking-[0.16em] text-gray-400">${label}</div>
           <div class="mt-1 text-sm font-medium leading-6 text-gray-900">${value}</div>
+        </div>
+      `;
+    }
+
+    function createCompactDetailCell(label, value) {
+      return `
+        <div class="rounded-2xl bg-gray-50 px-3 py-3">
+          <div class="text-[10px] font-bold tracking-[0.14em] text-gray-400">${label}</div>
+          <div class="mt-1 whitespace-nowrap text-sm font-semibold leading-5 text-gray-900">${value}</div>
         </div>
       `;
     }
@@ -1309,6 +1624,16 @@
         state.sortMode === 'ageAsc' ? 'ageDesc' :
         'numberAsc';
       renderPlayerList();
+    };
+
+    window.openStatInfo = (metric) => {
+      state.activeStatInfo = metric;
+      renderDetailModal();
+    };
+
+    window.closeStatInfo = () => {
+      state.activeStatInfo = null;
+      renderDetailModal();
     };
 
     window.openSettings = () => {
@@ -1676,6 +2001,7 @@
       const player = playersData.find(p => p.no === no);
       if (player) {
         state.selectedPlayer = player;
+        state.activeStatInfo = null;
         renderDetailModal();
         detailModal.classList.remove('hidden');
         renderSearchDock();
@@ -1685,6 +2011,7 @@
 
     window.closeDetail = () => {
       state.selectedPlayer = null;
+      state.activeStatInfo = null;
       detailModal.classList.add('hidden');
       detailModal.innerHTML = ''; // メモリ解放
       renderSearchDock();
