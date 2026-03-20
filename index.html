@@ -1540,6 +1540,12 @@
           onclick="openDetail('${p.no}')"
           class="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white px-4 py-4 shadow-[0_18px_48px_rgba(15,23,42,0.09)] transition-transform active:scale-[0.992] cursor-pointer"
         >
+          <button
+            type="button"
+            onclick="cycleSortMode(event)"
+            class="absolute right-4 top-4 z-20 min-w-[2.2rem] text-right text-[1.9rem] font-black italic leading-none tracking-[-0.06em] text-[#C80815]"
+            aria-label="並び替えを変更"
+          >${p.no}</button>
           <div class="absolute -right-3 -bottom-7 text-[7.6rem] font-black italic opacity-[0.035] pointer-events-none text-[#132B4D]">
             ${p.no}
           </div>
@@ -1573,14 +1579,6 @@
               <p class="mt-2 truncate text-[13px] font-semibold tracking-[0.01em] text-gray-500">
                 ${[p.draftLabel || null, p.age !== null ? `${p.age}歳` : null, p.birthplace].filter(Boolean).join('  ')}
               </p>
-            </div>
-            <div class="shrink-0 self-start pt-1">
-              <button
-                type="button"
-                onclick="cycleSortMode(event)"
-                class="min-w-[2.3rem] text-right text-[2.1rem] font-black italic leading-none tracking-[-0.05em] text-[#C80815]"
-                aria-label="並び替えを変更"
-              >${p.no}</button>
             </div>
           </div>
         </div>
@@ -1708,35 +1706,35 @@
             </div>
           </div>
 
-          <div class="bg-[#132B4D] px-5 pb-6 pt-4 text-white">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex min-w-0 flex-1 items-start gap-4">
-                <div class="shrink-0 pt-1">
+          <div class="bg-[#132B4D] px-5 pb-4 pt-4 text-white">
+            <div class="relative">
+              <div class="absolute right-1 top-1 text-[2.5rem] font-black italic leading-[0.9] tracking-[-0.06em] text-white/95">${p.no}</div>
+              <div class="flex min-w-0 items-start gap-4 pr-16">
+                <div class="shrink-0 pt-0.5">
                   <img
                     src="${p.photoUrl || ''}"
                     alt="${p.name}"
-                    class="h-[112px] w-[86px] rounded-[24px] object-cover object-top bg-white/10 shadow-[0_16px_30px_rgba(2,6,23,0.18)] ring-1 ring-white/8"
+                    class="h-[96px] w-[74px] rounded-[20px] object-cover object-top bg-white/10 shadow-[0_12px_24px_rgba(2,6,23,0.16)] ring-1 ring-white/8"
                     onerror="this.style.display='none';"
                   >
                 </div>
-                <div class="min-w-0 flex-1 max-w-[70%] pt-1">
-                <div class="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-white/76">
+                <div class="min-w-0 flex-1 max-w-[72%] pt-0.5">
+                <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-white/76">
                   <div class="tracking-[0.22em]">${p.displayRole}</div>
                   <div class="tracking-[0.08em]">${p.throw_bat}</div>
                 </div>
-                <h1 class="text-[1.82rem] font-black tracking-[-0.05em] leading-[1.03] text-white">${p.name}</h1>
-                ${p.nameKana ? `<div class="mt-2 text-[11px] font-semibold tracking-[0.18em] text-white/72">${p.nameKana}</div>` : ''}
+                <h1 class="text-[1.78rem] font-black tracking-[-0.05em] leading-[1.02] text-white">${p.name}</h1>
+                ${p.nameKana ? `<div class="mt-1.5 text-[11px] font-semibold tracking-[0.18em] text-white/72">${p.nameKana}</div>` : ''}
                 </div>
               </div>
-              <div class="shrink-0 pt-3 pr-1 text-[3.05rem] font-black italic leading-[0.9] tracking-[-0.06em] text-white/96">${p.no}</div>
             </div>
           </div>
         </div>
 
         <button onclick="closeDetail()" aria-label="閉じる" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-[#C80815] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] [text-shadow:0_1px_2px_rgba(2,6,23,0.45)] backdrop-blur-md transition active:scale-95">✕</button>
 
-        <div class="pt-2">
-          <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-5">
+        <div class="pt-0.5">
+          <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-3">
             <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
               <h3 class="mb-4 text-[13px] font-black tracking-[0.16em] text-gray-400">プロフィール</h3>
               <div class="grid grid-cols-[1.28fr_0.78fr_0.78fr_1.52fr] gap-2">
