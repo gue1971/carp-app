@@ -65,28 +65,11 @@
       <!-- JSで生成 -->
     </div>
 
-    <div id="search-dock" class="fixed bottom-[calc(env(safe-area-inset-bottom)+20px)] right-4 z-[65]">
-      <div id="search-shell" class="flex h-14 w-14 items-center justify-end overflow-hidden rounded-full bg-[#C80815] shadow-[0_18px_38px_rgba(2,6,23,0.28)] backdrop-blur-md transition-all duration-200 ease-out">
-        <div class="pointer-events-none flex h-14 w-14 shrink-0 items-center justify-center text-white">
-          <svg viewBox="0 0 24 24" class="h-6 w-6 drop-shadow-[0_1px_2px_rgba(2,6,23,0.45)]" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="6.5"></circle>
-            <path d="M16 16l4.5 4.5"></path>
-          </svg>
-        </div>
-        <input
-          id="search-input"
-          type="text"
-          placeholder="選手名、背番号、出身校"
-          class="w-0 min-w-0 flex-1 bg-transparent px-0 pr-1 text-[15px] font-medium text-white placeholder:text-white/52 outline-none opacity-0 transition-all duration-150"
-        />
-        <button id="search-toggle" onclick="toggleSearch()" aria-label="検索" class="flex h-14 w-14 shrink-0 items-center justify-center text-white transition active:scale-95">
-          <svg id="search-toggle-icon" viewBox="0 0 24 24" class="h-6 w-6 drop-shadow-[0_1px_2px_rgba(2,6,23,0.45)]" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="6.5"></circle>
-            <path d="M16 16l4.5 4.5"></path>
-          </svg>
-        </button>
-      </div>
+    <div id="search-stage" class="hidden fixed inset-0 z-[60] bg-[rgba(19,43,77,0.88)] px-4 pb-[calc(env(safe-area-inset-bottom)+96px)] pt-[calc(env(safe-area-inset-top)+84px)] backdrop-blur-sm">
+      <!-- JSで生成 -->
     </div>
+
+    <div id="search-dock" class="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+20px)] z-[65] flex justify-end px-4"></div>
   </div>
 
   <!-- Detail Modal -->
@@ -192,6 +175,33 @@
         throwHand: match?.[1] || null,
         batHand: match?.[2] || null
       };
+    }
+
+    function normalizeSearchText(value) {
+      const variantMap = {
+        '薗': '園',
+        '﨑': '崎',
+        '髙': '高',
+        '塚': '塚',
+        '澤': '沢',
+        '邉': '辺',
+        '邊': '辺',
+        '濵': '浜',
+        '會': '会',
+        '嶋': '島',
+        '冨': '富',
+        '眞': '真',
+        '德': '徳',
+        '國': '国',
+        '廣': '広'
+      };
+
+      return String(value || '')
+        .normalize('NFKC')
+        .replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60))
+        .replace(/[ 　・.\-ー]/g, '')
+        .replace(/[薗﨑髙塚澤邉邊濵會嶋冨眞德國廣]/g, char => variantMap[char] || char)
+        .toLowerCase();
     }
 
     function calculateAge(birth) {
@@ -482,6 +492,16 @@
         statsByYear: mergedStatsByYear,
         hasBattingStats: hasAnyStat(batting),
         hasPitchingStats: hasAnyStat(pitching),
+        searchIndex: normalizeSearchText([
+          player.name,
+          npbPlayer.name,
+          player.nameKana,
+          npbPlayer.nameKana,
+          npbPlayer.school || player.school,
+          npbPlayer.birthplace || player.birthplace,
+          player.no,
+          npbPlayer.draft || player.draft
+        ].filter(Boolean).join(' ')),
         sourceMeta: {
           ...(player.sourceMeta || {}),
           npbLinked: Boolean(npbId),
@@ -495,8 +515,10 @@
 
     // --- 2. 状態管理 ---
     let state = {
-      searchQuery: '',
       searchOpen: false,
+      searchCategory: null,
+      searchGroup: null,
+      searchValue: null,
       settingsOpen: false,
       gameOpen: false,
       gameViewIndex: 0,
@@ -513,11 +535,26 @@
       activeBatFilter: null,
       sortMode: 'numberAsc',
       selectedPlayer: null,
-      activeStatInfo: null
+      activeStatInfo: null,
+      battingStatsMode: 'slash'
     };
 
     const positionFilters = ['全選手', '投手', '野手', '捕手', '内野手', '外野手'];
     const rosterFilterOrder = ['支配下', '1軍', '2軍', '3軍', '育成'];
+    const searchCategories = [
+      { key: 'number', label: '背番号' },
+      { key: 'name', label: '名前' }
+    ];
+    const nameSearchGroupRows = [
+      ['ア', 'イ', 'ウ', 'エ', 'オ'],
+      ['カ', 'キ', 'ク', 'ケ', 'コ'],
+      ['サ', 'シ', 'ス', null, null],
+      ['タ', 'ツ', 'ト', null, null],
+      ['ナ', 'ニ', 'ノ', null, null],
+      ['ハ', 'ヒ', 'フ', 'ホ', null],
+      ['マ', 'モ', null, null, null],
+      ['ヤ', 'ワ', null, null, null]
+    ];
     const rosterFilterLabels = {
       '支配下': '支配下登録',
       '1軍': '一軍',
@@ -527,10 +564,8 @@
     };
 
     // --- 3. DOM要素 ---
-    const searchInput = document.getElementById('search-input');
     const searchDock = document.getElementById('search-dock');
-    const searchShell = document.getElementById('search-shell');
-    const searchToggleIcon = document.getElementById('search-toggle-icon');
+    const searchStage = document.getElementById('search-stage');
     const filterContainer = document.getElementById('filter-container');
     const playerListContainer = document.getElementById('player-list');
     const mainView = document.getElementById('main-view');
@@ -542,6 +577,45 @@
       document.body.style.overflow = state.selectedPlayer || state.settingsOpen || state.gameOpen ? 'hidden' : '';
     }
 
+    function getNameSearchSeed(player) {
+      const rawKana = String(player.nameKana || '')
+        .normalize('NFKC')
+        .replace(/[ 　]/g, '');
+
+      if (rawKana && !/^[A-Za-z]/.test(rawKana)) {
+        return rawKana;
+      }
+
+      return String(player.name || '')
+        .normalize('NFKC')
+        .replace(/^[A-Za-z]\./, '')
+        .replace(/[ 　]/g, '');
+    }
+
+    function getPlayerNameInitial(player) {
+      const seed = getNameSearchSeed(player);
+      return seed ? seed[0].toUpperCase() : '';
+    }
+
+    function getNameSearchGroup(player) {
+      const initial = getPlayerNameInitial(player);
+      return nameSearchGroupRows.flat().filter(Boolean).find(group => group.includes(initial)) || null;
+    }
+
+    function getSearchCategoryLabel(key) {
+      return searchCategories.find(category => category.key === key)?.label || '';
+    }
+
+    function getSearchResultPlayers() {
+      if (!state.searchCategory || !state.searchGroup) return [];
+      if (state.searchCategory === 'name') {
+        return playersData
+          .filter(player => getNameSearchGroup(player) === state.searchGroup)
+          .sort((a, b) => Number(a.no) - Number(b.no));
+      }
+      return [];
+    }
+
     function renderSearchDock() {
       if (state.selectedPlayer || state.settingsOpen || state.gameOpen) {
         searchDock.classList.add('hidden');
@@ -549,18 +623,104 @@
       }
 
       searchDock.classList.remove('hidden');
-      const isOpen = state.searchOpen;
-      searchShell.classList.toggle('w-14', !isOpen);
-      searchShell.classList.toggle('w-[min(calc(100vw-32px),360px)]', isOpen);
-      searchInput.classList.toggle('w-0', !isOpen);
-      searchInput.classList.toggle('opacity-0', !isOpen);
-      searchInput.classList.toggle('px-0', !isOpen);
-      searchInput.classList.toggle('w-full', isOpen);
-      searchInput.classList.toggle('opacity-100', isOpen);
-      searchInput.classList.toggle('pl-0', isOpen);
-      searchToggleIcon.innerHTML = isOpen
-        ? '<path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>'
-        : '<circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path>';
+      if (!state.searchOpen) {
+        searchDock.innerHTML = `
+          <button type="button" onclick="toggleSearch()" aria-label="検索" class="flex h-14 w-14 items-center justify-center rounded-full bg-[#C80815] text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] transition active:scale-95">
+            <svg viewBox="0 0 24 24" class="h-6 w-6 drop-shadow-[0_1px_2px_rgba(2,6,23,0.45)]" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5"></circle>
+              <path d="M16 16l4.5 4.5"></path>
+            </svg>
+          </button>
+        `;
+        return;
+      }
+
+      searchDock.innerHTML = `
+        <div class="flex items-center justify-end">
+          <button type="button" onclick="toggleSearch()" aria-label="閉じる" class="flex h-14 w-14 items-center justify-center rounded-full bg-[#C80815] text-[2rem] leading-none text-white shadow-[0_18px_38px_rgba(2,6,23,0.28)] transition active:scale-95">✕</button>
+        </div>
+      `;
+    }
+
+    function renderSearchStage() {
+      if (!state.searchOpen || state.selectedPlayer || state.settingsOpen || state.gameOpen) {
+        searchStage.classList.add('hidden');
+        searchStage.innerHTML = '';
+        return;
+      }
+
+      searchStage.classList.remove('hidden');
+
+      if (!state.searchCategory) {
+        searchStage.innerHTML = '';
+        searchStage.innerHTML = `
+          <div class="pointer-events-none flex h-full items-end justify-center">
+            <div class="pointer-events-auto mb-14 flex items-center justify-center gap-4">
+              ${searchCategories.map(category => `
+                <button
+                  type="button"
+                  onclick="setSearchCategory('${category.key}')"
+                  class="flex h-16 min-w-[138px] items-center justify-center rounded-full bg-[#C80815] px-7 text-[1.15rem] font-semibold text-white shadow-[0_24px_56px_rgba(2,6,23,0.32)]"
+                >${category.label}</button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.searchCategory === 'number') {
+        searchStage.innerHTML = `
+          <div class="pointer-events-none flex h-full items-end justify-center">
+            <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
+              <div class="grid grid-cols-7 gap-2.5 place-items-center">
+              ${playersData
+                .slice()
+                .sort((a, b) => Number(a.no) - Number(b.no))
+                .map(player => `
+                  <button type="button" onclick="selectSearchNumber('${player.no}')" class="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full bg-[#C80815] text-[13px] font-semibold text-white">${player.no}</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.searchCategory === 'name' && !state.searchGroup) {
+        searchStage.innerHTML = `
+          <div class="pointer-events-none flex h-full items-end justify-center">
+            <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
+              <div class="space-y-2">
+              ${nameSearchGroupRows.map(row => `
+                <div class="grid grid-cols-5 gap-3 place-items-center">
+                  ${row.map(group => group ? `
+                    <button type="button" onclick="setSearchGroup('${group}')" class="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full bg-[#C80815] text-base font-semibold text-white">${group}</button>
+                  ` : '<div class="h-16 w-16"></div>').join('')}
+                </div>
+              `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const resultPlayers = getSearchResultPlayers();
+      searchStage.innerHTML = `
+        <div class="pointer-events-none flex h-full items-end justify-center">
+          <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
+            <div class="space-y-2">
+            ${resultPlayers.map(player => `
+              <button type="button" onclick="openPlayerFromSearch('${player.no}')" class="flex w-full items-center justify-between rounded-full bg-[#C80815] px-6 py-4 text-left text-white transition active:scale-[0.99]">
+                <span class="text-[1.05rem] font-semibold">${player.name}</span>
+                <span class="text-[13px] font-medium text-white/82">${getNameSearchSeed(player)}</span>
+              </button>
+            `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     function renderSettingsModal() {
@@ -1208,10 +1368,12 @@
       if (!totals.plateAppearances && !totals.games) return null;
 
       const obpDenominator = totals.atBats + totals.walks + totals.hitByPitch + totals.sacrificeFlies;
+      const avg = totals.atBats ? totals.hits / totals.atBats : null;
       const obp = obpDenominator ? (totals.hits + totals.walks + totals.hitByPitch) / obpDenominator : null;
       const slg = totals.atBats ? totals.totalBases / totals.atBats : null;
       return {
         ...totals,
+        average: avg,
         onBasePercentage: obp,
         sluggingPercentage: slg
       };
@@ -1286,11 +1448,28 @@
       `;
     }
 
-    function createRecentStatsTable(title, headers, rows) {
+    function createRecentStatsTable(title, headers, rows, options = {}) {
       if (!rows.length) return '';
+      const toggleHint = options.toggleHint ? `
+        <span class="flex items-center gap-1 text-[10px] font-semibold tracking-[0.12em] text-gray-400">
+          <span class="flex h-5 w-5 items-center justify-center rounded-full border border-[#132B4D]/12 bg-[#132B4D]/4 text-[#132B4D]/48">
+            <svg viewBox="0 0 20 20" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6h9"></path>
+              <path d="M11 3l3 3-3 3"></path>
+              <path d="M16 14H7"></path>
+              <path d="M9 11l-3 3 3 3"></path>
+            </svg>
+          </span>
+        </span>
+      ` : '';
+      const clickAttrs = options.onClick ? ` onclick="${options.onClick}(event)"` : '';
+      const extraClass = options.onClick ? ' cursor-pointer transition active:scale-[0.995]' : '';
       return `
-        <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-          <h3 class="mb-4 text-sm font-bold tracking-wider text-gray-400">${title}</h3>
+        <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]${extraClass}"${clickAttrs}>
+          <div class="mb-4 flex items-center justify-between gap-3">
+            <h3 class="text-sm font-bold tracking-wider text-gray-400">${title}</h3>
+            ${toggleHint}
+          </div>
           <div class="-mx-1 overflow-x-auto">
             <table class="min-w-full border-separate border-spacing-y-2 text-left">
               <thead>
@@ -1299,8 +1478,8 @@
                 </tr>
               </thead>
               <tbody>
-                ${rows.map(row => `
-                  <tr class="bg-gray-50">
+                ${rows.map((row, rowIndex) => `
+                  <tr class="${rowIndex === 0 ? 'bg-gray-100' : 'bg-gray-50'}">
                     ${row.map((cell, index) => `
                       <td class="px-2 py-2 text-sm ${index === 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}">${cell}</td>
                     `).join('')}
@@ -1314,13 +1493,8 @@
     }
 
     function renderPlayerList() {
-      const q = state.searchQuery.toLowerCase();
-      
       const filtered = playersData.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(q) || 
-                              (p.nameKana || '').toLowerCase().includes(q) ||
-                              p.no.includes(q) ||
-                              p.school.toLowerCase().includes(q);
+        const matchesSearch = true;
                               
         let matchesPositionFilter = true;
         if (state.activePositionFilter && state.activePositionFilter !== '全選手') {
@@ -1443,15 +1617,22 @@
           .map(year => p.statsByYear?.[year]?.batting || {})
           .filter(stats => hasAnyStat(stats));
         const totalBatting = calculateBattingAggregate(yearlyBattingStats);
+        const useSlashStats = state.battingStatsMode === 'slash';
         const rows = [
           totalBatting ? [
             '通算',
             formatNumber(totalBatting.games),
             formatNumber(totalBatting.plateAppearances),
             formatAverage(calculateOps(totalBatting)),
-            formatPercent(calculateRate(totalBatting.walks, totalBatting.plateAppearances)),
-            formatPercent(calculateRate(totalBatting.strikeouts, totalBatting.plateAppearances)),
-            formatNumber(totalBatting.homeRuns)
+            useSlashStats
+              ? formatAverage(totalBatting.average)
+              : formatPercent(calculateRate(totalBatting.walks, totalBatting.plateAppearances)),
+            useSlashStats
+              ? formatAverage(totalBatting.onBasePercentage)
+              : formatPercent(calculateRate(totalBatting.strikeouts, totalBatting.plateAppearances)),
+            useSlashStats
+              ? formatAverage(totalBatting.sluggingPercentage)
+              : formatNumber(totalBatting.homeRuns)
           ] : null,
           ...statYears.map(year => {
             const batting = p.statsByYear?.[year]?.batting || {};
@@ -1461,16 +1642,27 @@
               formatNumber(batting.games),
               formatNumber(batting.plateAppearances),
               formatAverage(calculateOps(batting)),
-              formatPercent(calculateRate(batting.walks, batting.plateAppearances)),
-              formatPercent(calculateRate(batting.strikeouts, batting.plateAppearances)),
-              formatNumber(batting.homeRuns)
+              useSlashStats
+                ? formatAverage(batting.average)
+                : formatPercent(calculateRate(batting.walks, batting.plateAppearances)),
+              useSlashStats
+                ? formatAverage(batting.onBasePercentage)
+                : formatPercent(calculateRate(batting.strikeouts, batting.plateAppearances)),
+              useSlashStats
+                ? formatAverage(batting.sluggingPercentage)
+                : formatNumber(batting.homeRuns)
             ];
           })
         ].filter(Boolean);
 
         if (rows.length) {
           statBlocks.push(
-          createRecentStatsTable('打撃成績', ['年', '試合', '打席', 'OPS', '四球率', '三振率', '本塁打'], rows)
+          createRecentStatsTable(
+            '打撃成績',
+            ['年', '試合', '打席', 'OPS', ...(useSlashStats ? ['打率', '出塁率', '長打率'] : ['四球率', '三振率', '本塁打'])],
+            rows,
+            { onClick: 'toggleBattingStatsMode', toggleHint: useSlashStats ? 'タップで四球率表示' : 'タップで打率表示' }
+          )
           );
         }
       }
@@ -1562,7 +1754,7 @@
 
     function createCompactDetailCell(label, value) {
       return `
-        <div class="rounded-2xl bg-gray-50 px-3 py-3">
+        <div class="px-1 py-1">
           <div class="text-[10px] font-bold tracking-[0.14em] text-gray-400">${label}</div>
           <div class="mt-1 whitespace-nowrap text-sm font-semibold leading-5 text-gray-900">${value}</div>
         </div>
@@ -1633,6 +1825,12 @@
 
     window.closeStatInfo = () => {
       state.activeStatInfo = null;
+      renderDetailModal();
+    };
+
+    window.toggleBattingStatsMode = (event) => {
+      if (event?.target?.closest('button')) return;
+      state.battingStatsMode = state.battingStatsMode === 'slash' ? 'discipline' : 'slash';
       renderDetailModal();
     };
 
@@ -1982,19 +2180,62 @@
     };
 
     window.toggleSearch = () => {
-      if (state.searchOpen) {
-        state.searchOpen = false;
-        state.searchQuery = '';
-        searchInput.value = '';
-        renderSearchDock();
-        renderPlayerList();
-        searchInput.blur();
+      state.searchOpen = !state.searchOpen;
+      if (!state.searchOpen) {
+        state.searchCategory = null;
+        state.searchGroup = null;
+      }
+      renderSearchDock();
+      renderSearchStage();
+    };
+
+    window.setSearchCategory = (category) => {
+      state.searchCategory = category;
+      state.searchGroup = null;
+      renderSearchDock();
+      renderSearchStage();
+    };
+
+    window.setSearchGroup = (group) => {
+      state.searchGroup = group;
+      const resultPlayers = getSearchResultPlayers();
+      if (resultPlayers.length === 1) {
+        window.openPlayerFromSearch(resultPlayers[0].no);
         return;
       }
-
-      state.searchOpen = true;
       renderSearchDock();
-      setTimeout(() => searchInput.focus(), 0);
+      renderSearchStage();
+    };
+
+    window.clearSearchGroup = () => {
+      state.searchGroup = null;
+      renderSearchDock();
+      renderSearchStage();
+    };
+
+    window.goBackSearch = () => {
+      state.searchCategory = null;
+      state.searchGroup = null;
+      renderSearchDock();
+      renderSearchStage();
+    };
+
+    window.selectSearchNumber = (no) => {
+      state.searchOpen = false;
+      state.searchCategory = null;
+      state.searchGroup = null;
+      renderSearchDock();
+      renderSearchStage();
+      window.openDetail(no);
+    };
+
+    window.openPlayerFromSearch = (no) => {
+      state.searchOpen = false;
+      state.searchCategory = null;
+      state.searchGroup = null;
+      renderSearchDock();
+      renderSearchStage();
+      window.openDetail(no);
     };
 
     window.openDetail = (no) => {
@@ -2002,9 +2243,11 @@
       if (player) {
         state.selectedPlayer = player;
         state.activeStatInfo = null;
+        state.battingStatsMode = 'slash';
         renderDetailModal();
         detailModal.classList.remove('hidden');
         renderSearchDock();
+        renderSearchStage();
         updateBodyScroll();
       }
     };
@@ -2012,26 +2255,17 @@
     window.closeDetail = () => {
       state.selectedPlayer = null;
       state.activeStatInfo = null;
+      state.battingStatsMode = 'slash';
       detailModal.classList.add('hidden');
       detailModal.innerHTML = ''; // メモリ解放
       renderSearchDock();
+      renderSearchStage();
       updateBodyScroll();
     };
 
-    // --- 6. イベントリスナー ---
-    searchInput.addEventListener('input', (e) => {
-      state.searchQuery = e.target.value;
-      renderPlayerList();
-    });
-
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        window.toggleSearch();
-      }
-    });
-
-    // --- 7. 初期化 ---
+    // --- 6. 初期化 ---
     renderSearchDock();
+    renderSearchStage();
     renderFilters();
     renderPlayerList();
 
