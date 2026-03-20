@@ -430,14 +430,14 @@
       playerAssignments: loadPlayerAssignments(),
       gameStatuses: loadGameStatuses(),
       rosterFilter: '支配下',
-      activePositionFilter: null,
+      activePositionFilter: '全選手',
       activeThrowFilter: null,
       activeBatFilter: null,
       sortMode: 'numberAsc',
       selectedPlayer: null
     };
 
-    const positionFilters = ['投手', '野手', '捕手', '内野手', '外野手'];
+    const positionFilters = ['全選手', '投手', '野手', '捕手', '内野手', '外野手'];
     const rosterFilterOrder = ['支配下', '1軍', '2軍', '3軍', '育成'];
     const rosterFilterLabels = {
       '支配下': '支配下登録',
@@ -963,7 +963,7 @@
       const rosterButton = `
         <button
           onclick="toggleRosterFilter()"
-          class="min-w-0 rounded-xl bg-transparent px-0 py-2 text-[11px] font-semibold tracking-tight text-white transition-colors hover:bg-white/6"
+          class="min-w-0 rounded-xl border border-[#28466F] bg-transparent px-0 py-2 text-[11px] font-semibold tracking-tight text-white transition-colors hover:bg-white/6"
         >
           ${rosterFilterLabels[state.rosterFilter] || state.rosterFilter}
         </button>
@@ -985,7 +985,7 @@
       const throwButton = `
         <button
           onclick="cycleThrowFilter()"
-          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
+          class="min-w-0 rounded-xl border border-[#28466F] px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activeThrowFilter
               ? 'bg-transparent text-white'
               : 'bg-white/6 text-white hover:bg-white/10'
@@ -998,7 +998,7 @@
       const batButton = `
         <button
           onclick="cycleBatFilter()"
-          class="min-w-0 rounded-xl px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
+          class="min-w-0 rounded-xl border border-[#28466F] px-0 py-2 text-[11px] font-semibold tracking-tight transition-colors ${
             state.activeBatFilter
               ? 'bg-transparent text-white'
               : 'bg-white/6 text-white hover:bg-white/10'
@@ -1009,7 +1009,7 @@
       `;
 
       filterContainer.innerHTML = `
-        <div class="grid grid-cols-5 gap-1.5">
+        <div class="grid grid-cols-6 gap-1.5">
           ${positionButtons}
         </div>
         <div class="mt-2.5 grid grid-cols-3 gap-1.5">
@@ -1046,7 +1046,7 @@
                               p.school.toLowerCase().includes(q);
                               
         let matchesPositionFilter = true;
-        if (state.activePositionFilter) {
+        if (state.activePositionFilter && state.activePositionFilter !== '全選手') {
           matchesPositionFilter = state.activePositionFilter === '野手'
             ? p.pos !== '投手'
             : p.pos === state.activePositionFilter;
@@ -1272,7 +1272,7 @@
 
     // --- 5. アクション関数 ---
     window.setPositionFilter = (filter) => {
-      state.activePositionFilter = state.activePositionFilter === filter ? null : filter;
+      state.activePositionFilter = filter;
       renderFilters();
       renderPlayerList();
     };
