@@ -36,7 +36,7 @@
 <body class="bg-[#132B4D] text-gray-900 font-sans antialiased pb-safe">
 
   <!-- Main View -->
-  <div id="main-view">
+  <div id="main-view" class="min-h-screen bg-white">
     <!-- Header & Search -->
     <div class="sticky top-0 z-40 shadow-sm">
       <div class="relative overflow-hidden bg-[#C80815] pt-safe-top">
@@ -59,7 +59,7 @@
     </div>
 
     <!-- Player List -->
-    <div id="player-list" class="grid grid-cols-1 gap-4 p-4 pb-[calc(env(safe-area-inset-bottom)+112px)] md:grid-cols-2 lg:grid-cols-3">
+    <div id="player-list" class="grid grid-cols-1 gap-px pb-[calc(env(safe-area-inset-bottom)+112px)] md:grid-cols-2 lg:grid-cols-3">
       <!-- JSで生成 -->
     </div>
 
@@ -758,6 +758,56 @@
       })).filter(group => group.players.length > 0);
 
       const countTone = (count, limit) => count > limit ? 'text-[#C80815]' : 'text-white';
+      const renderBreakdown = (counts) => `
+        <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-semibold leading-none text-white/70">
+          <div class="flex items-center justify-between gap-2"><span>投手</span><span class="text-white/88">${counts.pitcher}</span></div>
+          <div class="flex items-center justify-between gap-2"><span>捕手</span><span class="text-white/88">${counts.catcher}</span></div>
+          <div class="flex items-center justify-between gap-2"><span>内野</span><span class="text-white/88">${counts.infielder}</span></div>
+          <div class="flex items-center justify-between gap-2"><span>外野</span><span class="text-white/88">${counts.outfielder}</span></div>
+        </div>
+      `;
+      const registeredBreakdown = {
+        pitcher: playersData.filter(player => player.pos === '投手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length,
+        catcher: playersData.filter(player => player.pos === '捕手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length,
+        infielder: playersData.filter(player => player.pos === '内野手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length,
+        outfielder: playersData.filter(player => player.pos === '外野手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length
+      };
+      const activeBreakdown = {
+        pitcher: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '投手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+        }).length,
+        catcher: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '捕手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+        }).length,
+        infielder: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '内野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+        }).length,
+        outfielder: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '外野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
+        }).length
+      };
+      const benchBreakdown = {
+        pitcher: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '投手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+        }).length,
+        catcher: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '捕手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+        }).length,
+        infielder: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '内野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+        }).length,
+        outfielder: playersData.filter(player => {
+          const assignment = getPlayerAssignment(player.no);
+          return player.pos === '外野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
+        }).length
+      };
 
       settingsModal.classList.remove('hidden');
       settingsModal.innerHTML = `
@@ -778,45 +828,21 @@
                 <div class="text-[11px] tracking-[0.14em] text-white/56">支配下登録選手</div>
                 <div class="mt-1 flex items-center justify-between gap-3">
                   <div class="text-lg font-black ${countTone(registeredCount, 70)}">${registeredCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 70</span></div>
-                  <div class="text-[9px] font-semibold tracking-[0.02em] text-white/62">投手 ${playersData.filter(player => player.pos === '投手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length} / 捕手 ${playersData.filter(player => player.pos === '捕手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length} / 内野手 ${playersData.filter(player => player.pos === '内野手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length} / 外野手 ${playersData.filter(player => player.pos === '外野手' && getPlayerAssignment(player.no).rosterStatus === '支配下').length}</div>
+                  ${renderBreakdown(registeredBreakdown)}
                 </div>
               </div>
               <div class="rounded-2xl bg-white/6 px-4 py-3">
                 <div class="text-[11px] tracking-[0.14em] text-white/56">出場選手登録</div>
                 <div class="mt-1 flex items-center justify-between gap-3">
                   <div class="text-lg font-black ${countTone(activeCount, 31)}">${activeCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 31</span></div>
-                  <div class="text-[9px] font-semibold tracking-[0.02em] text-white/62">投手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '投手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
-                  }).length} / 捕手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '捕手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
-                  }).length} / 内野手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '内野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
-                  }).length} / 外野手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '外野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍';
-                  }).length}</div>
+                  ${renderBreakdown(activeBreakdown)}
                 </div>
               </div>
               <div class="rounded-2xl bg-white/6 px-4 py-3">
                 <div class="text-[11px] tracking-[0.14em] text-white/56">ベンチ入り</div>
                 <div class="mt-1 flex items-center justify-between gap-3">
                   <div class="text-lg font-black ${countTone(benchCount, 26)}">${benchCount}<span class="ml-1 text-sm font-semibold text-white/56">/ 26</span></div>
-                  <div class="text-[9px] font-semibold tracking-[0.02em] text-white/62">投手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '投手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
-                  }).length} / 捕手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '捕手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
-                  }).length} / 内野手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '内野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
-                  }).length} / 外野手 ${playersData.filter(player => {
-                    const assignment = getPlayerAssignment(player.no);
-                    return player.pos === '外野手' && assignment.rosterStatus === '支配下' && assignment.squad === '1軍' && assignment.bench;
-                  }).length}</div>
+                  ${renderBreakdown(benchBreakdown)}
                 </div>
               </div>
             </div>
@@ -1472,7 +1498,7 @@
       const clickAttrs = options.onClick ? ` onclick="${options.onClick}(event)"` : '';
       const extraClass = options.onClick ? ' cursor-pointer transition active:scale-[0.995]' : '';
       return `
-        <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]${extraClass}"${clickAttrs}>
+        <div class="border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]${extraClass}"${clickAttrs}>
           <div class="mb-4 flex items-center justify-between gap-3">
             <h3 class="text-[13px] font-black tracking-[0.16em] text-gray-400">${title}</h3>
             ${toggleHint}
@@ -1538,45 +1564,35 @@
       playerListContainer.innerHTML = filtered.map(p => `
         <div 
           onclick="openDetail('${p.no}')"
-          class="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white px-4 py-4 shadow-[0_18px_48px_rgba(15,23,42,0.09)] transition-transform active:scale-[0.992] cursor-pointer"
+          class="group relative overflow-hidden bg-[#C80815] px-4 py-4 transition-transform active:scale-[0.992] cursor-pointer"
         >
           <button
             type="button"
             onclick="cycleSortMode(event)"
-            class="absolute right-4 top-4 z-20 min-w-[2.2rem] text-right text-[1.9rem] font-black italic leading-none tracking-[-0.06em] text-[#C80815]"
+            class="absolute right-4 top-1/2 z-20 min-w-[3.6rem] -translate-y-1/2 text-right text-[3.9rem] font-black italic leading-none tracking-[-0.08em] text-white"
             aria-label="並び替えを変更"
           >${p.no}</button>
-          <div class="absolute -right-3 -bottom-7 text-[7.6rem] font-black italic opacity-[0.035] pointer-events-none text-[#132B4D]">
+          <div class="absolute -right-5 -bottom-9 text-[9.5rem] font-black italic opacity-[0.09] pointer-events-none text-white">
             ${p.no}
           </div>
-          <div class="relative z-10 flex items-start gap-3.5">
+          <div class="relative z-10 flex items-center gap-3.5 pr-16">
             <div class="shrink-0 pt-0.5">
               <img
                 src="${p.photoUrl || ''}"
                 alt="${p.name}"
                 loading="lazy"
-                class="h-[92px] w-[72px] rounded-[22px] object-cover object-top bg-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.1)]"
+                class="h-[92px] w-[72px] object-cover object-top bg-white/18 shadow-[0_10px_24px_rgba(15,23,42,0.16)]"
                 onerror="this.style.visibility='hidden'; this.style.width='0'; this.style.margin='0';"
               >
             </div>
             <div class="flex-1 min-w-0 pt-1">
-              <div class="mb-2.5 flex flex-wrap gap-1.5">
-                ${getDisplayChips(p).map(chip => `
-                  <span class="rounded-full px-2.5 py-1 text-[10px] font-black leading-none tracking-[0.06em] ${
-                    chip === p.pos
-                      ? 'bg-[#C80815]/8 text-[#C80815]'
-                      : chip === '育成'
-                        ? 'bg-gray-200 text-gray-600'
-                        : 'bg-[#132B4D]/6 text-[#132B4D]/70'
-                  }">
-                    ${chip}
-                  </span>
-                `).join('')}
+              <div class="mb-2 text-[12px] font-bold tracking-[0.08em] text-white">
+                ${getDisplayChips(p).join('　')}
               </div>
               <div class="min-w-0">
-                <h2 class="truncate text-[1.65rem] font-black tracking-[-0.045em] leading-[1.04] text-gray-950">${p.name}</h2>
+                <h2 class="truncate text-[1.65rem] font-black tracking-[-0.045em] leading-[1.04] text-white">${p.name}</h2>
               </div>
-              <p class="mt-2 truncate text-[13px] font-semibold tracking-[0.01em] text-gray-500">
+              <p class="mt-2 truncate text-[13px] font-semibold tracking-[0.01em] text-white">
                 ${[p.draftLabel || null, p.age !== null ? `${p.age}歳` : null, p.birthplace].filter(Boolean).join('  ')}
               </p>
             </div>
@@ -1684,7 +1700,7 @@
 
       if (latestStats?.fieldingSummary) {
         statBlocks.push(`
-          <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+          <div class="border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
             <h3 class="mb-3 text-[13px] font-black tracking-[0.16em] text-gray-400">守備成績</h3>
             <div class="text-sm font-medium leading-7 text-gray-900">${latestStats.fieldingSummary}</div>
           </div>
@@ -1714,7 +1730,7 @@
                   <img
                     src="${p.photoUrl || ''}"
                     alt="${p.name}"
-                    class="h-[96px] w-[74px] rounded-[20px] object-cover object-top bg-white/10 shadow-[0_12px_24px_rgba(2,6,23,0.16)] ring-1 ring-white/8"
+                    class="h-[96px] w-[74px] object-cover object-top bg-white/10 shadow-[0_12px_24px_rgba(2,6,23,0.16)] ring-1 ring-white/8"
                     onerror="this.style.display='none';"
                   >
                 </div>
@@ -1735,7 +1751,7 @@
 
         <div class="pt-0.5">
           <div class="mx-auto max-w-2xl space-y-4 px-4 pb-[calc(env(safe-area-inset-bottom)+112px)] pt-3">
-            <div class="rounded-[30px] border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+            <div class="border border-white/70 bg-white px-5 py-5 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
               <h3 class="mb-4 text-[13px] font-black tracking-[0.16em] text-gray-400">プロフィール</h3>
               <div class="grid grid-cols-[1.28fr_0.78fr_0.78fr_1.52fr] gap-2">
                 ${createCompactDetailCell('生年月日', p.birth)}
