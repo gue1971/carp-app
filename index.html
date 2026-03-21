@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#132B4D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="CARP PLAYERS">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="512x512" href="./boy.png">
+  <link rel="apple-touch-icon" href="./boy.png">
   <title>CARP PLAYERS</title>
   
   <!-- Tailwind CSS CDN -->
@@ -1113,8 +1119,8 @@
               </div>
               <div class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="flex items-center justify-between gap-3">
-                  <div class="text-sm font-black tracking-[0.16em] text-gray-400">GAME SETTINGS</div>
-                  <button type="button" onclick="openClearLineupConfirm()" class="rounded-full bg-gray-200 px-4 py-2 text-xs font-semibold text-gray-700">メンバー表をクリア</button>
+                  <div class="text-sm font-black tracking-[0.16em] text-gray-400">メンバー設定</div>
+                  <button type="button" onclick="openClearLineupConfirm()" class="rounded-full border border-[#132B4D]/18 bg-white px-4 py-2 text-xs font-semibold text-[#132B4D]">メンバー表をクリア</button>
                 </div>
               </div>
             </section>
@@ -2378,6 +2384,12 @@
     renderSearchStage();
     renderFilters();
     renderPlayerList();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
 
   </script>
 </body>
