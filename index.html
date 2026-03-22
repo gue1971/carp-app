@@ -1688,9 +1688,12 @@
           <button
             type="button"
             onclick="cycleSortMode(event)"
-            class="absolute right-4 top-1/2 z-20 min-w-[3.2rem] -translate-y-1/2 text-right text-[3.9rem] font-black leading-none tracking-[-0.12em] text-[#b00c15] [transform:translateY(-50%)_scaleX(0.82)] [transform-origin:right_center]"
+            class="absolute right-1 top-1 z-20 text-[3.9rem] font-black italic leading-none tracking-[-0.08em] text-[#b00c15]"
             aria-label="並び替えを変更"
           >${p.no}</button>
+          <div class="absolute -right-4 -bottom-8 text-[8.8rem] font-black italic leading-none tracking-[-0.08em] text-[#132B4D] opacity-[0.04] pointer-events-none">
+            ${p.no}
+          </div>
           <div class="relative z-10 flex items-center gap-3.5 pr-16">
             <div class="shrink-0 pt-0.5">
               <img
