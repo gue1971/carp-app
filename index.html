@@ -1685,16 +1685,18 @@
           onclick="openDetail('${p.no}')"
           class="group relative overflow-hidden bg-white px-5 pb-4 pt-4 transition-transform active:scale-[0.992] cursor-pointer"
         >
+          <div class="pointer-events-none absolute inset-y-0 right-0 w-[108px] overflow-hidden">
+            <div class="absolute -right-2 top-1/2 -translate-y-1/2 text-[8.8rem] font-black italic leading-none tracking-[-0.08em] text-[#132B4D] opacity-[0.04]">
+              ${p.no}
+            </div>
+          </div>
           <button
             type="button"
             onclick="cycleSortMode(event)"
-            class="absolute right-2 top-1.5 z-20 text-[3.9rem] font-black italic leading-none tracking-[-0.08em] text-[#b00c15]"
+            class="absolute right-4 top-1/2 z-20 -translate-y-1/2 text-right text-[3.55rem] font-black italic leading-none tracking-[-0.08em] text-[#b00c15]"
             aria-label="並び替えを変更"
           >${p.no}</button>
-          <div class="absolute -right-3 -bottom-8 text-[8.8rem] font-black italic leading-none tracking-[-0.08em] text-[#132B4D] opacity-[0.04] pointer-events-none">
-            ${p.no}
-          </div>
-          <div class="relative z-10 flex min-w-0 items-start gap-4 pr-20">
+          <div class="relative z-10 flex min-w-0 items-start gap-4 pr-[5.8rem]">
             <div class="shrink-0 pt-0.5">
               <img
                 src="${p.photoUrl || ''}"
@@ -1704,7 +1706,7 @@
                 onerror="this.style.visibility='hidden'; this.style.width='0'; this.style.margin='0';"
               >
             </div>
-            <div class="min-w-0 flex-1 max-w-[72%] pt-0.5">
+            <div class="min-w-0 flex-1 pt-0.5">
               <div class="mb-2 text-[12px] font-bold tracking-[0.08em] text-gray-500">
                 ${getDisplayChips(p).join('　')}
               </div>
