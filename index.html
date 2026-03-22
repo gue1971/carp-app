@@ -1169,9 +1169,9 @@
             <section class="space-y-4">
               <div class="border border-white/8 bg-white p-5 shadow-[0_18px_40px_rgba(2,6,23,0.14)]">
                 <div class="mb-4 text-sm font-black tracking-[0.16em] text-gray-400">打順</div>
-                <div class="space-y-2.5">
+                <div class="space-y-2">
                         ${battingOrderSlots.map(slot => `
-                          <div class="bg-gray-50 px-4 py-3.5">
+                          <div class="bg-gray-50 px-4 py-3">
                             <div class="flex items-center gap-3">
                         <div class="w-7 shrink-0 text-sm font-black text-gray-400">${slot.order}</div>
                               ${slot.player ? renderGamePlayerCard(slot.player, 'active-lineup') : `
