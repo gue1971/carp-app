@@ -933,7 +933,7 @@
                 ${group.players.map(player => {
                   const assignment = getPlayerAssignment(player.no);
                   return `
-                    <div class="bg-gray-50 px-4 py-4">
+                    <div class="bg-gray-50 px-4 py-3">
                       <div class="flex items-center gap-3">
                         <button type="button" onclick="openDetail('${player.no}')" class="min-w-0 flex-1 text-left">
                           <div class="text-left text-[15px] font-bold tracking-tight text-gray-900">${player.no} ${player.name}</div>
@@ -1206,14 +1206,14 @@
                       <h3 class="text-xs font-black tracking-[0.14em] text-gray-400">${group.position}</h3>
                       <div class="text-xs font-black text-gray-400">${group.players.length}</div>
                     </div>
-                    <div class="space-y-3">
+                    <div class="space-y-2">
                       ${group.players.length ? group.players.map(player => `
-                        <div class="bg-gray-50 px-4 py-4">
+                        <div class="bg-gray-50 px-4 py-3">
                           <div class="flex items-center gap-3">
                             ${renderGamePlayerCard(player, 'bench-fielder')}
                           </div>
                         </div>
-                      `).join('') : '<div class="bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-300">該当選手なし</div>'}
+                      `).join('') : '<div class="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-300">該当選手なし</div>'}
                     </div>
                   </div>
                 `).join('')}
@@ -1226,14 +1226,14 @@
                   <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">交代</h2>
                   <div class="text-sm font-black text-gray-400">${retiredPlayers.length}</div>
                 </div>
-                <div class="space-y-3">
+                <div class="space-y-2">
                   ${retiredPlayers.length ? retiredPlayers.map(player => `
-                    <div class="bg-gray-50 px-4 py-4">
+                    <div class="bg-gray-50 px-4 py-3">
                       <div class="flex items-center gap-3">
                         ${renderGamePlayerCard(player, 'retired')}
                       </div>
                     </div>
-                  `).join('') : '<div class="bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
+                  `).join('') : '<div class="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-400">該当選手なし</div>'}
                 </div>
               </div>
             </section>
@@ -1243,14 +1243,14 @@
                 <h2 class="text-sm font-black tracking-[0.16em] text-gray-400">控え投手</h2>
                 <div class="text-sm font-black text-gray-400">${benchPitchers.length}</div>
               </div>
-              <div class="space-y-3">
+              <div class="space-y-2">
                 ${benchPitchers.length ? benchPitchers.map(player => `
-                  <div class="bg-gray-50 px-4 py-4">
+                  <div class="bg-gray-50 px-4 py-3">
                     <div class="flex items-center gap-3">
                       ${renderGamePlayerCard(player, 'bench-pitcher')}
                     </div>
                   </div>
-                `).join('') : '<div class="bg-gray-50 px-4 py-4 text-sm font-semibold text-gray-400">該当選手なし</div>'}
+                `).join('') : '<div class="bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-400">該当選手なし</div>'}
               </div>
             </section>
           `}
