@@ -771,8 +771,8 @@
       if (!state.searchCategory) {
         searchStage.innerHTML = '';
         searchStage.innerHTML = `
-          <div class="pointer-events-none flex h-full items-end justify-center">
-            <div class="pointer-events-auto mb-14 flex items-center justify-center gap-6">
+          <div class="pointer-events-none flex h-full items-center justify-center pb-14">
+            <div class="pointer-events-auto flex items-center justify-center gap-[4.5rem]">
               ${searchCategories.map(category => `
                 <button
                   type="button"
@@ -822,7 +822,7 @@
 
       if (state.searchCategory === 'name' && !state.searchGroup) {
         searchStage.innerHTML = `
-          <div class="pointer-events-none flex h-full items-end justify-center">
+          <div class="pointer-events-none flex h-full items-center justify-center pb-12">
             <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
               <div class="space-y-4">
               ${nameSearchGroupRows.map(row => `
@@ -849,7 +849,7 @@
 
       const resultPlayers = getSearchResultPlayers();
       searchStage.innerHTML = `
-        <div class="pointer-events-none flex h-full items-end justify-center">
+        <div class="pointer-events-none flex h-full items-center justify-center pb-12">
           <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
             <div class="space-y-2">
             ${resultPlayers.map(player => `
