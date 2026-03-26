@@ -676,6 +676,13 @@
       return nameSearchGroupRows.flat().filter(Boolean).find(group => group.includes(initial)) || null;
     }
 
+    function getSearchNumberSurnameKana(player) {
+      const seed = getNameSearchSeed(player);
+      if (!seed) return '';
+      const parts = String(seed).trim().split(/[ 　]+/).filter(Boolean);
+      return (parts[0] || seed).slice(0, 8);
+    }
+
     function getSearchCategoryLabel(key) {
       return searchCategories.find(category => category.key === key)?.label || '';
     }
@@ -746,13 +753,26 @@
       if (state.searchCategory === 'number') {
         searchStage.innerHTML = `
           <div class="pointer-events-none flex h-full items-end justify-center">
-            <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
-              <div class="grid grid-cols-7 gap-2.5 place-items-center">
+            <div class="pointer-events-auto w-full max-w-[420px] px-1 py-2">
+              <div class="grid grid-cols-6 gap-x-1.5 gap-y-2 place-items-stretch">
               ${playersData
                 .slice()
                 .sort((a, b) => Number(a.no) - Number(b.no))
                 .map(player => `
-                  <button type="button" onclick="selectSearchNumber('${player.no}')" class="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full bg-[#b00c15] text-[13px] font-semibold text-white">${player.no}</button>
+                  <button
+                    type="button"
+                    onclick="selectSearchNumber('${player.no}')"
+                    aria-label="背番号${player.no} ${player.name}"
+                    class="relative flex h-[4.2rem] w-full items-center justify-center overflow-hidden rounded-[16px] border border-white/70 bg-white text-[#b00c15] shadow-[0_10px_22px_rgba(2,6,23,0.16)] transition active:scale-[0.98]"
+                  >
+                    <div class="pointer-events-none absolute inset-x-[16%] top-[7px] h-[3px] rounded-full bg-[#b00c15]/88"></div>
+                    <div class="pointer-events-none absolute left-3 top-[9px] h-2.5 w-2.5 rounded-br-[10px] border-b-[2px] border-r-[2px] border-[#b00c15]/88"></div>
+                    <div class="pointer-events-none absolute right-3 top-[9px] h-2.5 w-2.5 rounded-bl-[10px] border-b-[2px] border-l-[2px] border-[#b00c15]/88"></div>
+                    <div class="relative z-10 flex h-full w-full flex-col items-center justify-center pt-1">
+                      <div class="text-[1.32rem] font-black leading-none tracking-[-0.05em]">${player.no}</div>
+                      <div class="mt-1.5 max-w-full px-1 text-[8px] font-semibold leading-none tracking-[0.04em] text-[#132B4D]/70">${getSearchNumberSurnameKana(player)}</div>
+                    </div>
+                  </button>
                 `).join('')}
               </div>
             </div>
