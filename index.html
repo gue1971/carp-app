@@ -788,8 +788,8 @@
 
       if (state.searchCategory === 'number') {
         searchStage.innerHTML = `
-          <div class="pointer-events-none flex h-full items-start justify-center px-2 pt-4">
-            <div class="pointer-events-auto w-full max-w-[420px]">
+          <div class="pointer-events-none flex h-full items-start justify-center px-2 pt-0">
+            <div class="pointer-events-auto w-full max-w-[420px] pb-24">
               <div class="grid grid-cols-6 gap-x-1 gap-y-2.5 place-items-center">
               ${playersData
                 .slice()
@@ -816,7 +816,7 @@
         searchStage.innerHTML = `
           <div class="pointer-events-none flex h-full items-end justify-center">
             <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
-              <div class="space-y-2">
+              <div class="space-y-3">
               ${nameSearchGroupRows.map(row => `
                 <div class="grid grid-cols-5 gap-3 place-items-center">
                   ${row.map(group => group ? `
@@ -829,7 +829,7 @@
                       </svg>
                       <span class="relative z-10 flex h-4 w-4 items-center justify-center rounded-[3px] bg-white text-[0.9rem] leading-none">${group}</span>
                     </button>
-                  ` : '<div class="h-16 w-16"></div>').join('')}
+                  ` : '<div class="h-[3.1rem] w-[3.1rem]"></div>').join('')}
                 </div>
               `).join('')}
               </div>
