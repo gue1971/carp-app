@@ -764,13 +764,21 @@
         searchStage.innerHTML = '';
         searchStage.innerHTML = `
           <div class="pointer-events-none flex h-full items-end justify-center">
-            <div class="pointer-events-auto mb-14 flex items-center justify-center gap-4">
+            <div class="pointer-events-auto mb-14 flex items-center justify-center gap-6">
               ${searchCategories.map(category => `
                 <button
                   type="button"
                   onclick="setSearchCategory('${category.key}')"
-                  class="flex h-16 min-w-[138px] items-center justify-center rounded-full bg-white px-7 text-[1.15rem] font-semibold text-[#b00c15] shadow-[0_24px_56px_rgba(2,6,23,0.18)]"
-                >${category.label}</button>
+                  class="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center overflow-hidden rounded-full bg-white text-[1rem] font-bold text-[#111827] shadow-[0_18px_34px_rgba(2,6,23,0.16)] transition active:scale-95"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 72 72" class="pointer-events-none absolute inset-0 h-full w-full opacity-70">
+                    <path d="M 16 8 C 26 24, 26 48, 16 64" fill="none" stroke="#b00c15" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="1.6 3.4"/>
+                    <path d="M 56 8 C 46 24, 46 48, 56 64" fill="none" stroke="#b00c15" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="1.6 3.4"/>
+                    <path d="M 20 8 C 29 24, 29 48, 20 64" fill="none" stroke="#b00c15" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.2 3.2" opacity="0.72"/>
+                    <path d="M 52 8 C 43 24, 43 48, 52 64" fill="none" stroke="#b00c15" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.2 3.2" opacity="0.72"/>
+                  </svg>
+                  <span class="relative z-10 rounded-full bg-white px-2.5 py-1 leading-tight">${category.label}</span>
+                </button>
               `).join('')}
             </div>
           </div>
@@ -782,7 +790,7 @@
         searchStage.innerHTML = `
           <div class="pointer-events-none flex h-full items-start justify-center px-2 pt-4">
             <div class="pointer-events-auto w-full max-w-[420px]">
-              <div class="grid grid-cols-6 gap-x-1 gap-y-1 place-items-stretch">
+              <div class="grid grid-cols-6 gap-x-1 gap-y-1 place-items-center">
               ${playersData
                 .slice()
                 .sort((a, b) => Number(a.no) - Number(b.no))
@@ -791,7 +799,7 @@
                     type="button"
                     onclick="selectSearchNumber('${player.no}')"
                     aria-label="背番号${player.no} ${player.name}"
-                    class="relative flex h-[2.85rem] w-full flex-col items-center justify-center overflow-hidden rounded-[10px] bg-white text-[#b00c15] shadow-[0_4px_10px_rgba(2,6,23,0.12)] transition active:scale-[0.98]"
+                    class="relative flex h-[2.95rem] w-[2.95rem] flex-col items-center justify-center overflow-hidden rounded-full bg-white text-[#b00c15] shadow-[0_4px_10px_rgba(2,6,23,0.12)] transition active:scale-[0.98]"
                   >
                     <div class="text-[1.08rem] font-black leading-none tracking-[-0.04em]">${player.no}</div>
                     <div class="mt-0.5 max-w-full truncate px-0.5 text-[6px] font-semibold leading-none tracking-[-0.01em] text-[#111827]">${getSearchNumberSurnameKana(player)}</div>
@@ -812,7 +820,15 @@
               ${nameSearchGroupRows.map(row => `
                 <div class="grid grid-cols-5 gap-3 place-items-center">
                   ${row.map(group => group ? `
-                    <button type="button" onclick="setSearchGroup('${group}')" class="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full bg-white text-base font-semibold text-[#b00c15] shadow-[0_8px_18px_rgba(2,6,23,0.14)]">${group}</button>
+                    <button type="button" onclick="setSearchGroup('${group}')" class="relative flex h-[3.1rem] w-[3.1rem] items-center justify-center overflow-hidden rounded-full bg-white text-[0.98rem] font-bold text-[#111827] shadow-[0_10px_20px_rgba(2,6,23,0.14)] transition active:scale-95">
+                      <svg aria-hidden="true" viewBox="0 0 72 72" class="pointer-events-none absolute inset-0 h-full w-full opacity-70">
+                        <path d="M 16 8 C 26 24, 26 48, 16 64" fill="none" stroke="#b00c15" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="1.6 3.4"/>
+                        <path d="M 56 8 C 46 24, 46 48, 56 64" fill="none" stroke="#b00c15" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="1.6 3.4"/>
+                        <path d="M 20 8 C 29 24, 29 48, 20 64" fill="none" stroke="#b00c15" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.2 3.2" opacity="0.72"/>
+                        <path d="M 52 8 C 43 24, 43 48, 52 64" fill="none" stroke="#b00c15" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="1.2 3.2" opacity="0.72"/>
+                      </svg>
+                      <span class="relative z-10 flex h-4 w-4 items-center justify-center rounded-[3px] bg-white text-[0.9rem] leading-none">${group}</span>
+                    </button>
                   ` : '<div class="h-16 w-16"></div>').join('')}
                 </div>
               `).join('')}
@@ -830,7 +846,7 @@
             <div class="space-y-2">
             ${resultPlayers.map(player => `
               <button type="button" onclick="openPlayerFromSearch('${player.no}')" class="flex w-full items-center justify-between rounded-full bg-white px-6 py-4 text-left text-[#b00c15] shadow-[0_12px_24px_rgba(2,6,23,0.14)] transition active:scale-[0.99]">
-                <span class="text-[1.05rem] font-semibold text-[#b00c15]">${player.name}</span>
+                <span class="text-[1.05rem] font-semibold text-[#111827]">${player.name}</span>
                 <span class="text-[13px] font-medium text-[#111827]">${getNameSearchSeed(player)}</span>
               </button>
             `).join('')}

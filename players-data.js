@@ -2305,7 +2305,7 @@ window.playersData = [
   {
     "no": "124",
     "name": "小林 結太",
-    "nameKana": "コバヤシユウタ",
+    "nameKana": "コバヤシ ユウタ",
     "positions": "捕手",
     "pos": "捕手",
     "status": "育成",
@@ -3046,7 +3046,7 @@ window.playersData = [
     "status": "支配下",
     "registration": "内野手",
     "note": null,
-    "birth": "1998年8月17日",
+    "birth": "1998-08-17",
     "birthplace": "ドミニカ共和国",
     "school": "サンホセ・フェ・イ・アレグリア中高",
     "height": 190,
@@ -3138,7 +3138,7 @@ window.playersData = [
   {
     "no": "125",
     "name": "岸本 大希",
-    "nameKana": "キシモトダイキ",
+    "nameKana": "キシモト ダイキ",
     "positions": "内野手",
     "pos": "内野手",
     "status": "育成",
