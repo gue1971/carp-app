@@ -680,6 +680,15 @@
       const nameParts = String(player.name || '').normalize('NFKC').trim().split(/[ 　]+/).filter(Boolean);
       const canonicalSurname = nameParts.length > 1 ? nameParts[0] : '';
       const kana = String(player.nameKana || '').normalize('NFKC').trim();
+      const displayName = String(player.name || '')
+        .normalize('NFKC')
+        .replace(/^[A-Za-z]\./, '')
+        .trim();
+
+      if (/^[A-Za-z]/.test(kana) || /^[A-Za-z]\./.test(String(player.name || ''))) {
+        return displayName || kana;
+      }
+
       if (kana) {
         const kanaParts = kana.split(/[ 　]+/).filter(Boolean);
         if (kanaParts.length > 1) {
@@ -760,7 +769,7 @@
                 <button
                   type="button"
                   onclick="setSearchCategory('${category.key}')"
-                  class="flex h-16 min-w-[138px] items-center justify-center rounded-full bg-[#b00c15] px-7 text-[1.15rem] font-semibold text-white shadow-[0_24px_56px_rgba(2,6,23,0.32)]"
+                  class="flex h-16 min-w-[138px] items-center justify-center rounded-full bg-white px-7 text-[1.15rem] font-semibold text-[#b00c15] shadow-[0_24px_56px_rgba(2,6,23,0.18)]"
                 >${category.label}</button>
               `).join('')}
             </div>
@@ -803,7 +812,7 @@
               ${nameSearchGroupRows.map(row => `
                 <div class="grid grid-cols-5 gap-3 place-items-center">
                   ${row.map(group => group ? `
-                    <button type="button" onclick="setSearchGroup('${group}')" class="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full bg-[#b00c15] text-base font-semibold text-white">${group}</button>
+                    <button type="button" onclick="setSearchGroup('${group}')" class="flex h-[2.9rem] w-[2.9rem] items-center justify-center rounded-full bg-white text-base font-semibold text-[#b00c15] shadow-[0_8px_18px_rgba(2,6,23,0.14)]">${group}</button>
                   ` : '<div class="h-16 w-16"></div>').join('')}
                 </div>
               `).join('')}
@@ -820,9 +829,9 @@
           <div class="pointer-events-auto w-full max-w-[420px] px-2 py-3">
             <div class="space-y-2">
             ${resultPlayers.map(player => `
-              <button type="button" onclick="openPlayerFromSearch('${player.no}')" class="flex w-full items-center justify-between rounded-full bg-[#b00c15] px-6 py-4 text-left text-white transition active:scale-[0.99]">
-                <span class="text-[1.05rem] font-semibold">${player.name}</span>
-                <span class="text-[13px] font-medium text-white/82">${getNameSearchSeed(player)}</span>
+              <button type="button" onclick="openPlayerFromSearch('${player.no}')" class="flex w-full items-center justify-between rounded-full bg-white px-6 py-4 text-left text-[#b00c15] shadow-[0_12px_24px_rgba(2,6,23,0.14)] transition active:scale-[0.99]">
+                <span class="text-[1.05rem] font-semibold text-[#b00c15]">${player.name}</span>
+                <span class="text-[13px] font-medium text-[#111827]">${getNameSearchSeed(player)}</span>
               </button>
             `).join('')}
             </div>
